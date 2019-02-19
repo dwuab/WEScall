@@ -1,0 +1,9 @@
+# used as bash prefix within snakemake
+
+# init dotkit
+source rc/dk_init.rc
+
+# load modules
+
+# unofficial bash strict has to come last
+set -euo pipefail;

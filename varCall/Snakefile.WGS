@@ -1,0 +1,98 @@
+# standard library imports
+#
+import os
+import subprocess
+import shutil
+import glob
+import re
+
+# third party imports
+#
+from snakemake.utils import report
+
+# project specific imports
+# #################################################
+
+LIB_PATH = os.path.abspath(
+    os.path.join(os.path.dirname(os.path.realpath(workflow.snakefile)),"..", "lib"))
+
+if LIB_PATH not in sys.path:
+    sys.path.insert(0, LIB_PATH)
+
+
+# FIX ME 
+# non-login bash
+shell.executable("/bin/bash")
+#shell.prefix("source rc/snakemake_env.rc;")
+#include: "../rules/logging.rules"
+#include: "../rules/report.rules"
+
+CHRS = config['users']['chrs'].split('-')
+#TOPMED = config['users']['topMed']
+REFPANEL = config['users']['1KG3_panel']
+
+
+TMP  = os.path.dirname(os.path.realpath(workflow.snakefile))
+APP  = os.path.join(TMP, "../apps")
+SCRIPT = os.path.join(TMP, "../lib")
+#TOPMED = config['users']['topMed']
+TOPMED = os.path.join(TMP,"../topMed")
+
+
+
+
+
+#step1_cpu = config['users'][
+#step2_cpu = config['users']['JointCall_MaxJob_per_chr']
+#step3_cpu = config['users']['SvmFilter_MaxJob_per_chr']
+
+print(CHRS)
+
+rule all:
+	input:
+		expand('out/svm/{chr}.svmFilter.OK', chr=CHRS)
+
+
+rule svmBuildModel_chr1:
+	input:
+		'out/aux/milk/milk.1.1.Milk.OK',
+		'out/aux/milk/milk.X.X.Milk.OK',
+	output:
+		'out/svm/BuildModel.OK'
+	threads:
+		4
+	run:
+		shell("perl {TOPMED}/scripts/step3b-run-svm-milk-filter.pl 1"),
+		shell("perl {TOPMED}/scripts/step3b-run-svm-milk-filter.pl X"),
+		shell("touch out/svm/BuildModel.OK")
+
+
+rule svmFilter:
+	input:
+		milkOK='out/aux/milk/milk.{chr}.{chr}.Milk.OK',
+		svmBuildOK='out/svm/BuildModel.OK'
+	output:
+		'out/svm/{chr}.svmFilter.OK'
+	params:
+		chr='{chr}'
+	threads:
+		4
+	run:
+		shell("perl {TOPMED}/scripts/step3c-run-milk-transfer.pl {params.chr}"),
+		shell("touch out/svm/{params.chr}.svmFilter.OK")
+
+
+rule VarDetect:
+	output:
+		'out/aux/milk/milk.{chr}.{chr}.Milk.OK'
+	params:
+		chr='{chr}',
+		thread=1,
+		step1_cpu=10,
+		step2_cpu=100,
+		step3_cpu=10,
+	threads:
+		1
+	run:
+		shell("perl {TOPMED}/scripts/step1-3a.pl WGS {params.chr}  {REFPANEL} {params.step1_cpu} {params.step2_cpu} {params.step3_cpu}");
+		shell("touch out/aux/milk/milk.{params.chr}.{params.chr}.Milk.OK")

@@ -1,0 +1,129 @@
+## library
+import os
+import subprocess
+import shutil
+import glob
+import re
+
+# third party imports
+#
+from snakemake.utils import report
+
+def atoi(text):
+    return int(text) if text.isdigit() else text
+
+def natural_keys(text):
+
+    if re.search("phasing",text):
+        text=re.split('/', text)[-1]
+        return [atoi(re.split('\.', text)[2])]
+    else:
+        text=re.split('/', text)[-1]
+        return [atoi(re.split('_', text)[2])]
+
+def orderVCF(para):
+    item=list(para.pop())
+    item.sort(key=natural_keys)
+    return ' '.join(item)
+
+
+# project specific imports
+#
+LIB_PATH = os.path.abspath(
+    os.path.join(os.path.dirname(os.path.realpath(workflow.snakefile)),"..", "lib"))
+
+if LIB_PATH not in sys.path:
+    sys.path.insert(0, LIB_PATH)
+
+# FIX ME
+
+RESULT_OUTDIR = './out'
+
+# non-login bash
+shell.executable("/bin/bash")
+#shell.prefix("source rc/snakemake_env.rc;")
+
+#include: "../rules/logging.rules"
+#include: "../rules/report.rules"
+
+
+CHRS = config['users']['chrs'].split('-')
+TMP  = os.path.dirname(os.path.realpath(workflow.snakefile))
+APP  = os.path.join(TMP, "../apps")
+SCRIPT = os.path.join(TMP, "../lib")
+
+
+rule all:
+    input:
+        expand('{chr}/{chr}.Filter.OK', chr=CHRS),
+        expand('{chr}/beagleSplit.{chr}.OK', chr=CHRS)
+
+
+rule bcfMerge:
+    """ Merge the bcf files into the vcf file by chromosome, multiple files into one 
+    """   
+    input:
+        lambda wildcards: expand('{prefix}', prefix=config['samples'][wildcards.chr])
+    output:
+        '{chr}/bcfMerge.{chr}.OK',
+        '{chr}/{chr}.all.vcf.gz'
+    log:
+        '{chr}/bcfMerge.{chr}.log'
+    params:
+        mychr='{chr}'
+    threads:
+        1
+    run:
+        shell("mkdir -p {params.mychr}"),
+        vcf=orderVCF({input}),
+	print({vcf}),
+        shell("{APP}/bcftools concat {vcf}  -o  {params.mychr}/{params.mychr}.all.vcf.gz  -O z >& {log}"),
+        shell("touch {params.mychr}/bcfMerge.{params.mychr}.OK")
+
+rule Filter:
+    input:
+       vcf='{chr}/bcfMerge.{chr}.OK',
+       site=config['sites'][20]    ######## Fix me
+    output:
+       vcf='{chr}/{chr}.Filter.vcf.gz',
+       log='{chr}/{chr}.Filter.OK'
+    params:
+       resourcePath=config['users']['1KG3_panel'],       
+       mychr='{chr}'   
+    threads:
+       1  
+    run:
+       shell("perl {SCRIPT}/QC.pl --invcf {params.mychr}/{params.mychr}.all.vcf.gz --removeLst {input.site}" 
+         "  --keepLst {params.resourcePath}_sites/ALL.{params.mychr}.phase3.20130502.SNP.indel.biallelic.MAF1.sites.vcf.gz" 
+         "  --out {output.vcf}  --type WES"),
+       shell("touch {params.mychr}/{params.mychr}.Filter.OK")
+
+
+rule beagleSplit:
+    """ Split the vcf files into different chunks 
+    """
+    input:
+        VCF='{chr}/{chr}.Filter.vcf.gz',
+        Flag='{chr}/{chr}.Filter.OK'
+    output:
+        '{chr}/beagleSplit.{chr}.OK'
+
+    log:
+        '{chr}/beagleSplit.{chr}.log'
+    params:
+        mychr='{chr}',
+        record= 10000,
+        overlap=1000,
+        prefix= 'chr{chr}.Split',
+        javaOption='-Xmx20g'
+    threads:
+        1
+    run:
+       if os.path.exists("{params.mychr}/beagleSplit.{params.mychr}.OK"):
+          print("No need to split the vcf file now...")
+       else:
+          shell("zcat {input.VCF} | java -jar {params.javaOption} {APP}/splitvcf.jar {params.mychr}  {params.record} {params.overlap} {params.mychr}/{params.prefix}  >& {log}"),
+          shell("touch {params.mychr}/beagleSplit.{params.mychr}.OK")
+
+
+

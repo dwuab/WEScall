@@ -1,0 +1,190 @@
+#!/usr/bin/perl -w
+
+use strict;
+use FindBin;
+use lib $FindBin::Bin;
+use hyunlib qw(forkExecWait);
+use wGetOptions qw(wpod2usage wGetOptions);
+use warnings;
+
+my $vcf = "";
+my $dbSNPf = "";
+my $out = "";
+
+wGetOptions(
+    "-Summarize SNPs/Indels in VCF Files",
+    "--Input file options",
+    "vcf=s" => [\$vcf, "Input VCF file (STDIN is default)"],    
+    "dbsnp=s" => [\$dbSNPf, "dbSNP file location"], 
+    "out=s" => [\$out, "output summary file"]    
+    ) || wpod2usage(2);
+=header
+my %ref_indel=();
+my %ref_snp=();
+if ( $dbSNPf =~ /\.gz$/ ) {
+    die "Can't read $vcf" unless( -f $dbSNPf  and -r $dbSNPf );
+    open(IN,"zcat $dbSNPf |") || die "Cannot open file\n";
+}
+else {
+    open(IN,$dbSNPf) || die "Cannot open file $dbSNPf \n";
+}
+
+while(<IN>) {
+    next if ( /^#/ );
+    my ($chrom,$pos,$id,$ref,$alt,$qual,$filter,$info) = split(/[\t\r\n ]+/);
+    if ( ( length($ref) > 1 ) || ( length($alt) > 1 ) ){
+    	$ref_indel{"$chrom:$pos"}++;
+    }
+    else{
+    	$ref_snp{"$chrom:$pos"}++;
+    }
+}
+close(IN);
+
+
+if ( $vcf =~ /\.gz$/ ) {
+    die "Can't read $vcf" unless( -f $vcf  and -r $vcf );
+    open(IN,"zcat $vcf |") || die "Cannot open file\n";
+}
+else {
+    open(IN,$vcf) || die "Cannot open file $vcf \n";
+}
+
+
+my (%snp, %indel);
+while(<IN>) {
+
+    next if ( /^#/ );
+    my ($chrom,$pos,$id,$ref,$alt,$qual,$filter,$info) = split(/[\t\r\n ]+/);
+    $id="$chrom:$pos";
+    my ($type, $pass, $found) = ("snps", 1, 0);
+    if ( ( length($ref) > 1 ) || ( length($alt) > 1 ) ){ 
+    	$type = "indels";
+    }
+
+    if ($filter=~/SVM/){
+    	$pass = 0;
+    }
+
+    if ($type eq "snps"){
+    	$snp{$id}{cnt}++;
+    	if(exists $ref_snp{$id}){$found = 1;}
+    	$snp{$id}{found} = $found;
+    	$snp{$id}{pass} = $pass;
+    } 
+    elsif ($type eq "indels"){
+		$indel{$id}{cnt}++;
+		if(exists $ref_indel{$id}){$found = 1;}
+		$indel{$id}{found} = $found;
+		$indel{$id}{pass} = $pass;
+    }
+
+}
+close(IN);
+
+open O, ">$out";
+print O "id\tVarType\tallele\t%1KG3\tPASS\n";
+foreach my $id (keys %snp){
+	print O "$id\t1\t$snp{$id}{cnt}\t$snp{$id}{found}\t$snp{$id}{pass}\n";
+}
+foreach my $id (keys %indel){
+	print O "$id\t0\t$indel{$id}{cnt}\t$indel{$id}{found}\t$indel{$id}{pass}\n";
+}
+close O;
+
+open F, "<$out";
+open O1, ">./tmp/TotalPASS.lst";
+open O2, ">./tmp/BiaPASS.lst";
+open O3, ">./tmp/TriPASS.lst";
+open O4, ">./tmp/MultiPASS.lst";
+open O5, ">./tmp/TotalFAIL.lst";
+open O6, ">./tmp/BiaFAIL.lst";
+open O7, ">./tmp/TriFAIL.lst";
+open O8, ">./tmp/MultiFAIL.lst";
+
+my %hash=();
+while(<F>){
+    chomp;
+    my @f = split(/\t|\s+/,$_);
+    my @t = split(/:/,$f[0]);
+    $f[2] = $f[2] + 1;
+    if($f[2]>3){$f[2]=4;}
+    $hash{"$f[1]$f[2]$f[3]$f[4]"}++;
+    if($f[1]==1 && $f[4]==1){
+        print O1 "$t[0]\t$t[1]\n";
+        if($f[2]==2){
+            print O2 "$t[0]\t$t[1]\n";
+        }
+        elsif($f[2]==3){
+            print O3 "$t[0]\t$t[1]\n";
+        }
+        elsif($f[2]==4){
+            print O4 "$t[0]\t$t[1]\n";
+        }
+    }
+    if($f[1]==1 && $f[4]==0){
+        print O5 "$t[0]\t$t[1]\n";
+        if($f[2]==2){
+            print O6 "$t[0]\t$t[1]\n";
+        }
+        elsif($f[2]==3){
+            print O7 "$t[0]\t$t[1]\n";
+        }
+        elsif($f[2]==4){
+            print O8 "$t[0]\t$t[1]\n";
+        }
+    }
+}
+close(O1);
+close(O2);
+close(O3);
+close(O4);
+close(O5);
+close(O7);
+close(O6);
+close(O8);
+
+
+
+
+my %varType=("0"=>"indel","1"=>"snps");
+my %filter=("0"=>"FAIL","1"=>"PASS");
+my %allele=("2"=>"Biallelic","3"=>"Triallelic","4"=>"Multiallelic");
+
+for(my $i=0;$i<2;$i++){
+    for(my $j=0;$j<2;$j++){
+        # i VarType  j PASS
+          print "----$varType{$i}  $filter{$j}----\n";
+          print "allele\tNo.sites\tTs/Tv\t%1KG3\n";
+          my $sum = 0;
+          my $found = 0;
+          for(my $k=2;$k<=4;$k++){
+            my $b = $hash{"$i$k"."1$j"} + $hash{"$i$k"."0$j"};
+            my $a = $hash{"$i$k"."1$j"};
+            $sum = $sum + $b;
+            $found = $found + $a;
+            $a = $a/$b;
+            print "$allele{$k}\t$b\tNA\t$a\n"
+          }
+          $found = $found/$sum;
+          print "Total\t$sum\tNA\t$found\n";
+    }
+}
+system("mkdir tmp");
+=cut
+
+
+my @snpLst=("./tmp/TotalPASS.lst","./tmp/BiaPASS.lst","./tmp/TriPASS.lst","./tmp/MultiPASS.lst","./tmp/TotalFAIL.lst","./tmp/BiaFAIL.lst","./tmp/TriFAIL.lst","./tmp/MultiFAIL.lst");
+for(my $i=0;$i<@snpLst;$i++){
+    print "$vcf $snpLst[$i]\n";
+    system("vcftools --gzvcf $vcf --positions $snpLst[$i] --recode --recode-INFO-all --stdout | bgzip -c > ./tmp/test.vcf.gz");
+    system("vcftools --gzvcf ./tmp/test.vcf.gz --TsTv-summary")
+}
+
+
+
+
+
+
+
+

@@ -1,0 +1,85 @@
+## library
+import os
+import subprocess
+import shutil
+import glob
+import re
+
+# third party imports
+#
+from snakemake.utils import report
+
+def atoi(text):
+    return int(text) if text.isdigit() else text
+
+def natural_keys(text):
+
+    if re.search("phasing",text):
+        text=re.split('/', text)[-1]
+        return [atoi(re.split('\.', text)[2])]
+    else:
+        text=re.split('/', text)[-1]
+        return [atoi(re.split('_', text)[2])]
+
+def orderVCF(para):
+    item=list(para.pop())
+    item.sort(key=natural_keys)
+    return ' '.join(item)
+
+
+# project specific imports
+#
+LIB_PATH = os.path.abspath(
+    os.path.join(os.path.dirname(os.path.realpath(workflow.snakefile)),"..", "lib"))
+
+if LIB_PATH not in sys.path:
+    sys.path.insert(0, LIB_PATH)
+
+# FIX ME
+
+RESULT_OUTDIR = './out'
+
+# non-login bash
+shell.executable("/bin/bash")
+shell.prefix("source rc/snakemake_env.rc;")
+
+#include: "../rules/logging.rules"
+#include: "../rules/report.rules"
+
+
+VCFS = ['Female.Non.PAR.region.vcf.gz','Male.Non.PAR.region.vcf.gz','PAR.region.vcf.gz']
+TMP  = os.path.dirname(os.path.realpath(workflow.snakefile))
+APP  = os.path.join(TMP, "../apps")
+SCRIPT = os.path.join(TMP, "../lib")
+
+
+rule all:
+    input:
+        expand('phasing_ChrX/{file}.split.OK', file=VCFS)
+
+
+rule beagleSplit:
+    """ Split the vcf files into different chunks 
+    """
+    input:
+        VCF='phasing_ChrX/{file}',
+    output:
+        'phasing_ChrX/{file}.split.OK'
+
+    params:
+        myfile='{file}',
+        record= 10000,
+        overlap=1000,
+        prefix= 'chrX.Split',
+        javaOption='-Xmx20g'
+    threads:
+        1
+    run:
+       if os.path.exists("phasing_ChrX/beagleSplit.{params.myfile}.OK"):
+          print("No need to split the vcf file now...")
+       else:
+          shell("zcat {input.VCF} | java -jar {params.javaOption} {APP}/splitvcf.jar {params.myfile}  {params.record} {params.overlap} phasing_ChrX/{params.prefix}"),
+          shell("touch phasing_ChrX/{file}.phasing.OK")
+
+
+
