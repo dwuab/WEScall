@@ -57,9 +57,12 @@ If no pedigree/ phenotype information available, please set zero in this file. B
   1KG3_panel: ${PL_DIR}/WEScall/resources/data_v5a_filtered
   geneticMap: ${PL_DIR}/WEScall/resources/geneticMap_GRCh37
 ``` 
-The first line specifies which chromosomes you want to call. Chromosomes that can be called are chromosomes 1 to 22 and X. WEScall coud not call variants from chromosome Y. You can specify multiple chromosomes one by one, delimited by dash (for example 20-22).  
+The first line specifies which chromosomes you want to call. Chromosomes that can be called are chromosomes 1 to 22 and X. WEScall coud not call variants from chromosome Y. You can specify multiple chromosomes one by one, delimited by dash (for example 20-22). 
+
 The second line specifies the target region bed file. It lists the targeted exonic regions with start and stop chromosome locations in GRCh37/hg19. Note, WEScall can also support the analysis of samples from whole genome sequencing (WGS). In this case, the target region bed file is not necessary. 
+
 The third line specifies the location of the 1KG3 reference panel used for genotype imputation. 
+
 The fourth line specifies the location of the genetic map files used for genotype imputation. 
 
 Now we can generate the master job file using the following command
