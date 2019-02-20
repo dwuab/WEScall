@@ -61,9 +61,9 @@ The first line specifies which chromosomes you want to call. Chromosomes that ca
 
 The second line specifies the target region bed file. It lists the targeted exonic regions with start and stop chromosome locations in GRCh37/hg19. Note, WEScall can also support the analysis of samples from whole genome sequencing (WGS). In this case, the target region bed file is not necessary. 
 
-The third line specifies the location of the 1KG3 reference panel used for genotype imputation. 
+The third line specifies the location of the 1KG3 reference panel used for genotype phasing. 
 
-The fourth line specifies the location of the genetic map files used for genotype imputation. 
+The fourth line specifies the location of the genetic map files used for genotype phasing. 
 
 Now we can generate the master job file using the following command
 
