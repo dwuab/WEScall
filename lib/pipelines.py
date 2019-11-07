@@ -17,6 +17,7 @@ from datetime import datetime, timedelta
 import calendar
 import json
 import requests
+from pathlib import Path
 
 #--- third-party imports
 #
@@ -377,7 +378,7 @@ class PipelineHandler(object):
         else:
             master_q_arg = ""
         if self.site == "local":
-            logger.warning("Please not that script is run in 'local' mode"
+            logger.warning("Please note that script is run in 'local' mode"
                            " (which is mainly for debugging)")
             cmd = "cd {} && bash {} {} >> {}".format(
                 os.path.dirname(self.run_out), master_q_arg,
@@ -431,6 +432,14 @@ def is_devel_version():
     return os.path.exists(check_file)
 
 
+def is_site_custom():
+    """
+    returns true if the user specifies the current site name in file use.custom.site
+    assuming the current site is not NSCC, GIS, nor local
+    """
+    return Path(PIPELINE_ROOTDIR+"/use.custom.site").is_file()
+
+
 def get_site():
     """Determine site where we're running. Throws ValueError if unknown
     """
@@ -441,6 +450,11 @@ def get_site():
         return "NSCC"
     elif os.path.exists("/home/userrig"):
         return "GIS"
+    elif is_site_custom():
+        with open(PIPELINE_ROOTDIR+"/use.custom.site") as f_in:
+            site_name=f_in.readline().strip()
+        logger.info("Custom site %s recognized.", site_name)
+        return site_name
     else:
         return "local"
 
@@ -458,6 +472,9 @@ def get_cluster_cfgfile(cfg_dir):
 def get_init_call():
     """return dotkit init call
     """
+    if is_site_custom():
+        return os.path.join(PIPELINE_ROOTDIR, "custom.init")
+
     site = get_site()
     try:
         cmd = [INIT[get_site()]]
@@ -558,12 +575,17 @@ def get_default_queue(master_or_slave):
     else:
         user = 'enduser'
     site = get_site()
-    if master_or_slave == 'master':
-        return DEFAULT_MASTER_Q[site][user]
-    elif master_or_slave == 'slave':
-        return DEFAULT_MASTER_Q[site][user]
+
+    # As the related info was hard-coded for GIS and NSCC
+    if site in DEFAULT_MASTER_Q:
+        if master_or_slave == 'master':
+            return DEFAULT_MASTER_Q[site][user]
+        elif master_or_slave == 'slave':
+            return DEFAULT_MASTER_Q[site][user]
+        else:
+            raise ValueError(master_or_slave)
     else:
-        raise ValueError(master_or_slave)
+        return None
 
 
 def send_status_mail(pipeline_name, success, analysis_id, outdir,

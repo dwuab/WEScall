@@ -47,7 +47,8 @@ shell.executable("/bin/bash")
 #include: "../rules/report.rules"
 
 
-CHRS = config['users']['chrs'].split('-')
+# unconditionally convert CHRS to string to avoid config['users']['chrs'] being integer
+CHRS = str(config['users']['chrs']).split('-')
 TMP  = os.path.dirname(os.path.realpath(workflow.snakefile))
 APP  = os.path.join(TMP, "../apps")
 SCRIPT = os.path.join(TMP, "../lib")

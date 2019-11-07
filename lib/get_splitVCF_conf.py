@@ -78,7 +78,7 @@ def main():
 
     with open(args.input, 'r') as fh:   
         data = yaml.load(fh)
-    CHRS = data['users']['chrs'].split('-')
+    CHRS = str(data['users']['chrs']).split('-')
 
 
     chr_split=dict()

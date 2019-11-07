@@ -79,6 +79,7 @@ while (<INDEX>)
     }
 }
 close(INDEX);
+print STDOUT "@SAMPLE\n";
 
 
 ###################
@@ -180,8 +181,11 @@ for my $i (0 .. $#intervals)
     my @cmd_OK=();
     my $preSampleCnt = 0;
     my $sample_max = @SAMPLE;
+    print STDOUT "test\n";
+    print STDOUT "@SAMPLE\n";
     for my $sampleID (@SAMPLE)
     {
+        print STDOUT $sampleID."\n";
         $SampleCnt ++;
         $outputVCFFile = "$individualDir/$sampleID/$intervalNames[$i].sites.bcf";
         #$tgt = "$outputVCFFile.OK";

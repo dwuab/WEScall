@@ -1,6 +1,7 @@
 #!/usr/bin/perl -w
 
 use strict;
+use warnings;
 use Time::HiRes qw(usleep nanosleep);
 use File::Path;
 use File::Basename;
@@ -79,6 +80,7 @@ foreach my $chr (@chrs) {
     print STDERR "Loading positive labels..\n";
     ## LABEL positive samples
     foreach my $posVcf (@posVcfs) {
+    	die "$posVcf cannot be found!\n" if (!(-e $posVcf));
  	if($chr < 1) {
  		open(IN,"zcat $posVcf | grep -w PASS|") || die "Cannot open file\n";
  	}

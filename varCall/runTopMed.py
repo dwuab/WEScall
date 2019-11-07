@@ -32,9 +32,9 @@ from pipelines import get_pipeline_version
 from pipelines import PipelineHandler
 from pipelines import logger as aux_logger
 from pipelines import get_cluster_cfgfile
-from pipelines import get_default_queue
+from pipelines import get_default_queue, get_site
 
-__author__ = "Jinzhuang Dou"
+__author__ = "Jinzhuang Dou and others"
 __email__ = "douj@gis.a-star.edu.sg"
 __copyright__ = "2016 Genome Institute of Singapore"
 __license__ = "The MIT License (MIT)"
@@ -88,8 +88,9 @@ def main():
                         help="The list of BAM/CRAM files of study samples")
     parser.add_argument('-c', '--userCfg', required=True, default=0,
                         help="User specific configure file")
-    parser.add_argument('-t', '--seqtype', required=True, default=0,
-                        help="User specific configure file")
+    parser.add_argument('-t', "--seqtype", required=True,
+                        choices=['WGS', 'WES'],
+                        help="Sequencing type")
     cfg_group = parser.add_argument_group('Configuration files (advanced)')
     for name, descr in [("params", "parameters"),
                         ("references", "reference sequences"),
@@ -149,6 +150,9 @@ def main():
             refs_cfgfile=args.references_cfg,
             cluster_cfgfile=get_cluster_cfgfile(CFG_DIR),
             user_cfgfile=args.userCfg)
+
+    else:
+        raise NameError("Currently sequencing types other than WGS and WES are not supported!")
 
 
     ####### 

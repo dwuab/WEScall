@@ -43,10 +43,10 @@ elsif(-d '/home/userrig'){
 	our $batchopts_step3 = "-q medium.q  -pe OpenMP 1  -l mem_free=12G,h_rt=48:00:00 -V -cwd -terse -b y";
 }
 else{
-	our $batchtype = "";
-	our $batchopts_step1 = "";
-	our $batchopts_step2 = "";
-	our $batchopts_step3 = "";
+	our $batchtype = "pbs";
+	our $batchopts_step1 = "-q cu -l mem=4g -V";
+	our $batchopts_step2 = "-q cu -l mem=12g -V";
+	our $batchopts_step3 = "-q cu -l mem=12g -V";
 }
 
 ############################################################

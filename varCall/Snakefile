@@ -28,7 +28,7 @@ shell.executable("/bin/bash")
 #include: "../rules/logging.rules"
 #include: "../rules/report.rules"
 
-CHRS = config['users']['chrs'].split('-')
+CHRS = str(config['users']['chrs']).split('-')
 TMP  = os.path.dirname(os.path.realpath(workflow.snakefile)) 
 APP  = os.path.join(TMP, "../apps")
 SCRIPT = os.path.join(TMP, "../lib")

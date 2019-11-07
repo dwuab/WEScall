@@ -10,8 +10,7 @@ use hyunlib qw(%hszchrs initRef forkExecWait);
 use gcconfig;
 
 &initRef($ref);
-# The parameter projectID_for_NSCC is only vaild when running jobs on NSCC. 
-my($type,$chr,$sitePath,$cpu_step1,$cpu_step2,$cpu_step3,$projectID_for_NSCC) = @ARGV;
+my($type,$chr,$sitePath,$cpu_step1,$cpu_step2,$cpu_step3) = @ARGV;
 
 my $scriptPath = "$FindBin::Bin/../scripts";
 print "$scriptPath\n";
@@ -23,7 +22,8 @@ if($result!=0) {die()};
 
 if($type eq "WES"){
    # Add the sites existing in 1KG3 reference panel but absent in the discover step.  
-   system("perl $scriptPath/add1KG3Sites.pl out/aux/union $chr  $scriptPath $sitePath"."_sites");
+   $result = system("perl $scriptPath/add1KG3Sites.pl out/aux/union $chr  $scriptPath $sitePath"."_sites");
+   if($result!=0) {die()};
 }
 
 $result = system("perl $scriptPath/step2-joint-genotyping.pl  $chr");

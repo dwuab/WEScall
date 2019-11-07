@@ -117,10 +117,9 @@ def main():
 
 
     # generate the sample configure file according to the output of topMed
-    if not os.path.isdir('/home/users/astar/gis/userrig'):
-        pythonPATH="/mnt/projects/rpd/apps/miniconda3/bin/python "
-    else:
-        pythonPATH="/home/users/astar/gis/gisshared/rpd/apps/miniconda3/bin/python "
+
+    pythonPATH="python "
+
     getSampleConf_cmd = pythonPATH + LIB_PATH + "/get_splitVCF_conf.py -i  ./phasing/conf.yaml  -o ./phasing/splitGenome.yaml";
     print(getSampleConf_cmd);
     os.system(getSampleConf_cmd);    

@@ -115,11 +115,7 @@ def main():
     if not os.path.exists("phasing"):
         os.mkdir("phasing")
 
-    if not os.path.isdir('/home/users/astar/gis/userrig'):
-    # generate the sample configure file according to the output of topMed
-    	getSampleConf_cmd = "/mnt/projects/rpd/apps/miniconda3/bin/python  " + LIB_PATH + "/phasing_sample_conf.py --type " + args.seqtype + "  --input ./varCall/out/paste   --sites ./varCall/out/svm  -o ./phasing/sample.yaml";
-    else:
-	    getSampleConf_cmd = "/home/users/astar/gis/gisshared/rpd/apps/miniconda3/bin/python  " + LIB_PATH + "/phasing_sample_conf.py --type " + args.seqtype + "  --input ./varCall/out/paste   --sites ./varCall/out/svm  -o ./phasing/sample.yaml";    
+    getSampleConf_cmd = "python  " + LIB_PATH + "/phasing_sample_conf.py --type " + args.seqtype + "  --input ./varCall/out/paste   --sites ./varCall/out/svm  -o ./phasing/sample.yaml";    
     print(getSampleConf_cmd);
     os.system(getSampleConf_cmd);    
     sample_cfg = "./phasing/sample.yaml";
