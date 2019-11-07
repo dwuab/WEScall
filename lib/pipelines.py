@@ -37,10 +37,10 @@ yaml.Dumper.ignore_aliases = lambda *args: True
 
 # global logger
 logger = logging.getLogger(__name__)
-handler = logging.StreamHandler()
-handler.setFormatter(logging.Formatter(
-    '[{asctime}] {levelname:8s} {filename} {message}', style='{'))
-logger.addHandler(handler)
+# handler = logging.StreamHandler()
+# handler.setFormatter(logging.Formatter(
+#     '[{asctime}] {levelname:8s} {filename} {message}', style='{'))
+# logger.addHandler(handler)
 
 # dir relative to Snakefile where configs are to be found
 CFG_DIR = "cfg"
