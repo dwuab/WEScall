@@ -32,7 +32,6 @@ from pipelines import get_pipeline_version
 from pipelines import PipelineHandler
 from pipelines import logger as aux_logger
 from pipelines import get_cluster_cfgfile
-from pipelines import get_default_queue, get_site
 
 __author__ = "Jinzhuang Dou and others"
 __email__ = "douj@gis.a-star.edu.sg"
@@ -50,10 +49,9 @@ CFG_DIR = os.path.join(PIPELINE_BASEDIR, "cfg")
 # same as folder name. also used for cluster job names
 PIPELINE_NAME = "runTopMed"
 
-MARK_DUPS = True
-
 # global logger
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 handler = logging.StreamHandler()
 handler.setFormatter(logging.Formatter(
     '[{asctime}] {levelname:8s} {filename} {message}', style='{'))
@@ -71,19 +69,15 @@ def main():
                         help="Give this analysis run a name (used in email and report)")
     parser.add_argument('--no-mail', action='store_true',
                         help="Don't send mail on completion")
-    default = get_default_queue('slave')
-    parser.add_argument('-w', '--slave-q', default=default,
-                        help="Queue to use for slave jobs (default: {})".format(default))
-    default = get_default_queue('master')
-    parser.add_argument('-m', '--master-q', default=default,
-                        help="Queue to use for master job (default: {})".format(default))
+    parser.add_argument('-w', '--slave-q', default=None,
+                        help="Queue to use for slave jobs (default: {})".format(None))
+    parser.add_argument('-m', '--master-q', default=None,
+                        help="Queue to use for master job (default: {})".format(None))
     parser.add_argument('-n', '--no-run', action='store_true')
     parser.add_argument('-v', '--verbose', action='count', default=0,
                         help="Increase verbosity")
     parser.add_argument('-q', '--quiet', action='count', default=0,
                         help="Decrease verbosity")
-    parser.add_argument('-p', '--pedigree', required=True, default=0,
-                        help="The pedigree file of study samples")
     parser.add_argument('-i', '--index', required=True, default=0,
                         help="The list of BAM/CRAM files of study samples")
     parser.add_argument('-c', '--userCfg', required=True, default=0,
@@ -91,6 +85,8 @@ def main():
     parser.add_argument('-t', "--seqtype", required=True,
                         choices=['WGS', 'WES'],
                         help="Sequencing type")
+    parser.add_argument('-l', "--local",action='store_true',
+        help="Whether to run in local mode")
     cfg_group = parser.add_argument_group('Configuration files (advanced)')
     for name, descr in [("params", "parameters"),
                         ("references", "reference sequences"),
@@ -124,41 +120,31 @@ def main():
     if args.name:
         user_data['analysis_name'] = args.name
 
-    if args.seqtype== "WES":
+    if not args.local:
+        cluster_cfgfile=get_cluster_cfgfile(CFG_DIR)
 
-        pipeline_handler = PipelineHandler(
-            PIPELINE_NAME, PIPELINE_BASEDIR, 
-            "./varCall",user_data,
-            Snakefile="Snakefile",
-            master_q=args.master_q,
-            slave_q=args.slave_q,
-            params_cfgfile=args.params_cfg,
-            modules_cfgfile=args.modules_cfg,
-            refs_cfgfile=args.references_cfg,
-            cluster_cfgfile=get_cluster_cfgfile(CFG_DIR),
-            user_cfgfile=args.userCfg)
-
-    elif args.seqtype== "WGS":
-        pipeline_handler = PipelineHandler(
-            PIPELINE_NAME, PIPELINE_BASEDIR, 
-            "./varCall",user_data,
-            Snakefile="Snakefile.WGS",
-            master_q=args.master_q,
-            slave_q=args.slave_q,
-            params_cfgfile=args.params_cfg,
-            modules_cfgfile=args.modules_cfg,
-            refs_cfgfile=args.references_cfg,
-            cluster_cfgfile=get_cluster_cfgfile(CFG_DIR),
-            user_cfgfile=args.userCfg)
-
-    else:
-        raise NameError("Currently sequencing types other than WGS and WES are not supported!")
-
+    pipeline_handler = PipelineHandler(
+        PIPELINE_NAME, PIPELINE_BASEDIR, 
+        "./varCall",user_data,
+        Snakefile="Snakefile."+args.seqtype,
+        master_q=args.master_q,
+        slave_q=args.slave_q,
+        params_cfgfile=args.params_cfg,
+        modules_cfgfile=args.modules_cfg,
+        refs_cfgfile=args.references_cfg,
+        cluster_cfgfile=cluster_cfgfile,
+        user_cfgfile=args.userCfg,
+        local_mode=args.local)
 
     ####### 
     os.system("mkdir -p ./varCall/data")
-    shutil.copy2(args.pedigree,"./varCall/data/test.ped")
     shutil.copy2(args.index,"./varCall/data/test.index")
+
+    # automatically generate the pedigree file for the user
+    with open(args.index) as f_in, open("./varCall/data/test.ped","w") as f_out:
+        for line in f_in:
+            record = line.strip().split("\t")
+            f_out.write("{smp}\t{smp}\t{smp}\t0\t0\n".format(smp=record[0]))
 
     pipeline_handler.setup_env()
     pipeline_handler.submit(args.no_run)

@@ -48,48 +48,6 @@ CFG_DIR = "cfg"
 PIPELINE_ROOTDIR = os.path.join(os.path.dirname(__file__), "..")
 assert os.path.exists(os.path.join(PIPELINE_ROOTDIR, "VERSION"))
 
-INIT = {
-    # FIXME make env instead? because caller knows, right?
-    # Update the env
-    'GIS':  os.path.join(PIPELINE_ROOTDIR, "init"),
-    #'NSCC': "/seq/astar/gis/rpd/init",
-    'NSCC': os.path.join(PIPELINE_ROOTDIR, "init"),
-    'local': "true",# dummy command
-}
-
-
-DEFAULT_SLAVE_Q = {
-    'GIS': {
-        'enduser': None, 'production': None,
-    },
-    'NSCC': {
-        'enduser': None, 'production': 'production',
-    }
-}
-
-DEFAULT_MASTER_Q = {
-    'GIS': {
-        'enduser': None, 'production': None,
-    },
-    'NSCC': {
-        'enduser': None, 'production': 'production',
-    }
-}
-
-
-# from address, i.e. users should reply to to this
-# instead of rpd@gis to which we send email
-RPD_MAIL = "douj@gis.a-star.edu.sg"
-RPD_SIGNATURE = """
---
-<{}>
-""".format(RPD_MAIL)
-
-
-# ugly
-
-
-
 class PipelineHandler(object):
     """FIXME:add-doc
 
@@ -109,7 +67,7 @@ class PipelineHandler(object):
     }
 
     LOG_DIR_REL = "logs"
-    MASTERLOG = os.path.join(LOG_DIR_REL, "snakemake.log")
+    # MASTERLOG = os.path.join(LOG_DIR_REL, "snakemake.log")
     SUBMISSIONLOG = os.path.join(LOG_DIR_REL, "submission.log")
 
     # master max walltime in hours
@@ -132,7 +90,8 @@ class PipelineHandler(object):
                  modules_cfgfile=None,
                  refs_cfgfile=None,
                  user_cfgfile=None,
-                 cluster_cfgfile=None):
+                 cluster_cfgfile=None,
+                 local_mode=False):
         """FIXME:add-doc
 
         pipeline_subdir: where default configs can be found, i.e pipeline subdir
@@ -145,8 +104,11 @@ class PipelineHandler(object):
         self.user_data = user_data
 
         self.log_dir_rel = self.LOG_DIR_REL
-        self.masterlog = self.MASTERLOG
+
+        # make the masterlog file name more informative
+        self.masterlog = pipeline_name+".master.log"
         self.submissionlog = self.SUBMISSIONLOG
+        self.local_mode=local_mode
 
 
         #if params_cfgfile:
@@ -180,14 +142,7 @@ class PipelineHandler(object):
         self.snakemake_env_file = os.path.join(
             self.outdir, self.RC_FILES['SNAKEMAKE_ENV'])
 
-        if site is None:
-            try:
-                site = get_site()
-            except ValueError:
-                logger.warning("Unknown site")
-                site = "local"
         self.logger_cmd = logger_cmd
-        self.site = site
         self.master_q = master_q
         self.slave_q = slave_q
         self.master_walltime_h = master_walltime_h
@@ -202,19 +157,13 @@ class PipelineHandler(object):
 
         # run template
         self.run_template = os.path.join(
-            pipeline_rootdir, "lib", "run.template.{}.sh".format(self.site))
+            pipeline_rootdir, "lib", "run.template.sh")
         self.run_out = os.path.join(outdir, "run.sh")
         assert os.path.exists(self.run_template)
-
-        # we don't know for sure who's going to actually exectute
-        # but it's very likely the current user, who needs to be notified
-        # on qsub kills etc
-        self.toaddr = email_for_user()
 
         log_path = os.path.abspath(os.path.join(self.outdir, self.masterlog))
         self.elm_data = {'pipeline_name': self.pipeline_name,
                          'pipeline_version': self.pipeline_version,
-                         'site': self.site,
                          'instance_id': 'SET_ON_EXEC',# dummy
                          'submitter': 'SET_ON_EXEC',# dummy
                          'log_path': log_path}
@@ -277,15 +226,17 @@ class PipelineHandler(object):
         """FIXME:add-doc
         """
 
+        # have to specify the name of working directory so that the main script
+        # can run properly on Torque
         d = {'SNAKEFILE': self.snakefile_abs,
              'LOGDIR': self.log_dir_rel,
-             'MASTERLOG': self.masterlog,
+             'MASTERLOG': self.log_dir_rel+"/"+self.masterlog,
              'PIPELINE_NAME': self.pipeline_name,
-             'MAILTO': self.toaddr,
              'MASTER_WALLTIME_H': self.master_walltime_h,
              'DEFAULT_SLAVE_Q': self.slave_q if self.slave_q else "",
              'LOGGER_CMD': self.logger_cmd,
-	     'PIPELINE_ROOT': PIPELINE_ROOTDIR}
+	         'PIPELINE_ROOT': PIPELINE_ROOTDIR,
+             'WORKING_DIR': os.getcwd()+"/"+self.outdir}
 
         with open(self.run_template) as fh:
             templ = fh.read()
@@ -359,7 +310,7 @@ class PipelineHandler(object):
             os.makedirs(os.path.join(self.outdir, self.log_dir_rel))
             os.makedirs(os.path.join(self.outdir, self.RC_DIR))
 
-        if self.site != "local":
+        if not self.local_mode:
             self.write_cluster_config()
         self.write_merged_cfg()
         self.write_snakemake_env()
@@ -377,7 +328,7 @@ class PipelineHandler(object):
             master_q_arg = "-q {}".format(self.master_q)
         else:
             master_q_arg = ""
-        if self.site == "local":
+        if self.local_mode:
             logger.warning("Please note that script is run in 'local' mode"
                            " (which is mainly for debugging)")
             cmd = "cd {} && bash {} {} >> {}".format(
@@ -432,59 +383,22 @@ def is_devel_version():
     return os.path.exists(check_file)
 
 
-def is_site_custom():
-    """
-    returns true if the user specifies the current site name in file use.custom.site
-    assuming the current site is not NSCC, GIS, nor local
-    """
-    return Path(PIPELINE_ROOTDIR+"/use.custom.site").is_file()
-
-
-def get_site():
-    """Determine site where we're running. Throws ValueError if unknown
-    """
-    # gis detection is a bit naive... but socket.getfqdn() doesn't help here
-    # also possible: ip a | grep -q 192.168.190 && NSCC=1
-    # but will only work on lmn
-    if os.path.exists('/home/users/astar/gis/userrig'):# 'NSCC' in socket.getfqdn():
-        return "NSCC"
-    elif os.path.exists("/home/userrig"):
-        return "GIS"
-    elif is_site_custom():
-        with open(PIPELINE_ROOTDIR+"/use.custom.site") as f_in:
-            site_name=f_in.readline().strip()
-        logger.info("Custom site %s recognized.", site_name)
-        return site_name
-    else:
-        return "local"
-
-
 def get_cluster_cfgfile(cfg_dir):
     """returns None for local runs
     """
-    site = get_site()
-    if site != "local":
-        cfg = os.path.join(cfg_dir, "cluster.{}.yaml".format(site))
-        assert os.path.exists(cfg), ("Missing file {}".format(cfg))
-        return cfg
+    cfg = os.path.join(cfg_dir, "cluster.yaml")
+    assert os.path.exists(cfg), ("Missing file {}".format(cfg))
+    return cfg
 
 
 def get_init_call():
     """return dotkit init call
     """
-    if is_site_custom():
-        return os.path.join(PIPELINE_ROOTDIR, "custom.init")
+    path_to_init=os.path.join(PIPELINE_ROOTDIR, "init")
+    if not os.path.exists(path_to_init):
+        raise Exception("Initialization file "+path_to_init+" not found!")
 
-    site = get_site()
-    try:
-        cmd = [INIT[get_site()]]
-    except KeyError:
-        raise ValueError("Unknown site '{}'".format(site))
-
-    if is_devel_version() and site != "local":
-        cmd.append('-d')
-
-    return cmd
+    return path_to_init
 
 
 def get_rpd_vars():
@@ -548,130 +462,6 @@ def get_machine_run_flowcell_id(runid_and_flowcellid):
     return machineid, runid, flowcellid
 
 
-# FIXME real_name() works at NSCC and GIS: getent passwd wilma | cut -f 5 -d :  | rev | cut -f 2- -d ' ' | rev
-def email_for_user():
-    """FIXME:add-doc
-    """
-
-    user_name = getuser()
-    if user_name == "userrig":
-        toaddr = "rpd@gis.a-star.edu.sg"
-    else:
-        toaddr = "{}@gis.a-star.edu.sg".format(user_name)
-    return toaddr
-
-
-
-def is_production_user():
-    return getuser() == "userrig"
-
-
-def get_default_queue(master_or_slave):
-    """FIXME:add-doc
-    """
-
-    if is_production_user():
-        user = 'production'
-    else:
-        user = 'enduser'
-    site = get_site()
-
-    # As the related info was hard-coded for GIS and NSCC
-    if site in DEFAULT_MASTER_Q:
-        if master_or_slave == 'master':
-            return DEFAULT_MASTER_Q[site][user]
-        elif master_or_slave == 'slave':
-            return DEFAULT_MASTER_Q[site][user]
-        else:
-            raise ValueError(master_or_slave)
-    else:
-        return None
-
-
-def send_status_mail(pipeline_name, success, analysis_id, outdir,
-                     extra_text=None, pass_exception=True):
-    """
-    - pipeline_name: pipeline name
-    - success: bool
-    - analysis_id:  name/identifier for this analysis run
-    - outdir: directory where results are found
-    """
-
-    body = "Pipeline {} (version {}) for {} ".format(
-        pipeline_name, get_pipeline_version(), analysis_id)
-    if success:
-        status_str = "completed"
-        body += status_str
-        body += "\n\nResults can be found in {}\n".format(outdir)
-    else:
-        status_str = "failed"
-        body += status_str
-        masterlog = os.path.normpath(os.path.join(outdir, "..", PipelineHandler.MASTERLOG))
-        body += "\n\nSorry about this."
-        body += "\n\nThe following log file provides more information: {}".format(masterlog)
-    if extra_text:
-        body = body + "\n" + extra_text + "\n"
-    body += "\n\nThis is an automatically generated email\n"
-    body += RPD_SIGNATURE
-
-    site = get_site()
-    subject = "Pipeline {} for {} {} (@{})".format(
-        pipeline_name, analysis_id, status_str, site)
-
-    msg = MIMEText(body)
-    msg['Subject'] = subject
-    msg['From'] = RPD_MAIL
-    msg['To'] = email_for_user()
-
-    site = get_site()
-    server = smtplib.SMTP(SMTP_SERVER[site])
-    try:
-        server.send_message(msg)
-        server.quit()
-    except Exception as err:
-        logger.fatal("Sending mail failed: %s", err)
-        if not pass_exception:
-            raise
-
-
-
-def send_mail(subject, body, toaddr=None, ccaddr=None,
-              pass_exception=True):
-    """
-    Generic mail function
-
-    FIXME make toaddr and ccaddr lists
-    """
-
-    body += "\n"
-    body += "\n\nThis is an automatically generated email\n"
-    body += RPD_SIGNATURE
-
-    msg = MIMEText(body)
-    msg['Subject'] = subject
-    msg['From'] = RPD_MAIL
-    if toaddr is None:
-        msg['To'] = email_for_user()
-    elif "@" in toaddr:
-        msg['To'] = toaddr
-    else:
-        msg['To'] = toaddr + "@gis.a-star.edu.sg"
-    if ccaddr:
-        if "@" not in ccaddr:
-            ccaddr += "@gis.a-star.edu.sg"
-        msg['Cc'] = ccaddr
-
-    site = get_site()
-    server = smtplib.SMTP(SMTP_SERVER[site])
-    try:
-        server.send_message(msg)
-        server.quit()
-    except Exception as err:
-        logger.fatal("Sending mail failed: %s", err)
-        if not pass_exception:
-            raise
-
-
 def ref_is_indexed(ref, prog="bwa"):
     """checks whether a reference was already indexed by given program"""
 
@@ -719,34 +509,3 @@ def chroms_and_lens_from_from_fasta(fasta):
             (s, l) = line.split()[:2]
             l = int(l)
             yield (s, l)
-
-
-def path_to_url(out_path):
-    """convert path to qlap33 server url"""
-
-    # FIXME change for testing, gis, NSCC
-    if out_path.startswith("/mnt/projects/userrig/solexa/"):
-        return out_path.replace("/mnt/projects/userrig/solexa/", \
-            "http://rpd/userrig/runs/solexaProjects/")
-    else:
-        #raise ValueError(out_path)
-        return out_path
-
-def mux_to_lib(mux_id, testing=False):
-    """returns the component libraries for MUX
-    """
-    lib_list = []
-    if not testing:
-        rest_url = rest_services['lib_details']['production'].replace("lib_id", mux_id)
-    else:
-        rest_url = rest_services['lib_details']['testing'].replace("lib_id", mux_id)
-    response = requests.get(rest_url)
-    if response.status_code != requests.codes.ok:
-        response.raise_for_status()
-    rest_data = response.json()
-    if 'plexes' not in rest_data:
-        logger.fatal("FATAL: plexes info for %s is not available in ELM \n", mux_id)
-        sys.exit(1)
-    for lib in rest_data['plexes']:
-        lib_list.append(lib['libraryId'])
-    return lib_list

@@ -31,7 +31,6 @@ from pipelines import get_pipeline_version
 from pipelines import PipelineHandler
 from pipelines import logger as aux_logger
 from pipelines import get_cluster_cfgfile
-from pipelines import get_default_queue
 
 __author__ = "Jinzhuang Dou"
 __email__ = "douj@gis.a-star.edu.sg"
@@ -72,12 +71,10 @@ def main():
                         help="Give this analysis run a name (used in email and report)")
     parser.add_argument('--no-mail', action='store_true',
                         help="Don't send mail on completion")
-    default = get_default_queue('slave')
-    parser.add_argument('-w', '--slave-q', default=default,
-                        help="Queue to use for slave jobs (default: {})".format(default))
-    default = get_default_queue('master')
-    parser.add_argument('-m', '--master-q', default=default,
-                        help="Queue to use for master job (default: {})".format(default))
+    parser.add_argument('-w', '--slave-q', default=None,
+                        help="Queue to use for slave jobs (default: {})".format(None))
+    parser.add_argument('-m', '--master-q', default=None,
+                        help="Queue to use for master job (default: {})".format(None))
     parser.add_argument('-n', '--no-run', action='store_true')
     parser.add_argument('-v', '--verbose', action='count', default=0,
                         help="Increase verbosity")
@@ -122,7 +119,8 @@ def main():
 
     getSampleConf_cmd = pythonPATH + LIB_PATH + "/get_splitVCF_conf.py -i  ./phasing/conf.yaml  -o ./phasing/splitGenome.yaml";
     print(getSampleConf_cmd);
-    os.system(getSampleConf_cmd);    
+    if (os.system(getSampleConf_cmd)!=0):
+        exit(1)
     sample_cfg = "./phasing/splitGenome.yaml";
     
     if sample_cfg:
@@ -150,33 +148,17 @@ def main():
         user_data['analysis_name'] = args.name
 
 
-    if args.seqtype== "WES":
-
-        pipeline_handler = PipelineHandler(
-            PIPELINE_NAME, PIPELINE_BASEDIR, 
-            "phasing",user_data,
-            Snakefile="Snakefile.beagle.WES",
-            master_q=args.master_q,
-            slave_q=args.slave_q,
-            params_cfgfile=args.params_cfg,
-            modules_cfgfile=args.modules_cfg,
-            refs_cfgfile=args.references_cfg,
-            cluster_cfgfile=get_cluster_cfgfile(CFG_DIR),
-            user_cfgfile=args.userCfg)
-
-    elif args.seqtype== "WGS":
-        pipeline_handler = PipelineHandler(
-            PIPELINE_NAME, PIPELINE_BASEDIR, 
-            "phasing",user_data,
-            Snakefile="Snakefile.beagle.WGS",
-            master_q=args.master_q,
-            slave_q=args.slave_q,
-            params_cfgfile=args.params_cfg,
-            modules_cfgfile=args.modules_cfg,
-            refs_cfgfile=args.references_cfg,
-            cluster_cfgfile=get_cluster_cfgfile(CFG_DIR),
-            user_cfgfile=args.userCfg)
-
+    pipeline_handler = PipelineHandler(
+        PIPELINE_NAME, PIPELINE_BASEDIR, 
+        "phasing",user_data,
+        Snakefile="Snakefile.beagle."+args.seqtype,
+        master_q=args.master_q,
+        slave_q=args.slave_q,
+        params_cfgfile=args.params_cfg,
+        modules_cfgfile=args.modules_cfg,
+        refs_cfgfile=args.references_cfg,
+        cluster_cfgfile=get_cluster_cfgfile(CFG_DIR),
+        user_cfgfile=args.userCfg)
 
     pipeline_handler.setup_env()
     pipeline_handler.submit(args.no_run)

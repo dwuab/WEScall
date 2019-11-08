@@ -28,26 +28,32 @@ our $time_latency_job = 10;
 
 
 ### Please modify the cluster configuration informaiton for large-scale datasets!
+### the following settings are provided for reference
 ### For jobs in NSCC, please specify the jobIDs 
-if (-d '/home/users/astar/gis/userrig'){
-	our $batchtype = "pbs";
-	our $batchopts_step1 = "   -l  select=1:ncpus=$discover_thread_perBatch:mem=24G  -l walltime=24:00:00 -P 13000026 -q production";
-	our $batchopts_step2 = "   -l  select=1:ncpus=$jointcall_thread_perBatch:mem=32G -l walltime=24:00:00 -P 13000026 -q production";
-	our $batchopts_step3 = "   -l  select=1:ncpus=$milk_thread_perBatch:mem=24G -l walltime=24:00:00 -P 13000026 -q production";
+# if (-d '/home/users/astar/gis/userrig'){
+# 	our $batchtype = "pbs";
+# 	our $batchopts_step1 = "   -l  select=1:ncpus=$discover_thread_perBatch:mem=24G  -l walltime=24:00:00 -P 13000026 -q production";
+# 	our $batchopts_step2 = "   -l  select=1:ncpus=$jointcall_thread_perBatch:mem=32G -l walltime=24:00:00 -P 13000026 -q production";
+# 	our $batchopts_step3 = "   -l  select=1:ncpus=$milk_thread_perBatch:mem=24G -l walltime=24:00:00 -P 13000026 -q production";
 
-}
-elsif(-d '/home/userrig'){
-	our $batchtype = "sge";
-	our $batchopts_step1 = "-q medium.q  -pe OpenMP 1  -l mem_free=4G,h_rt=12:00:00 -V -cwd -terse -b y";
-	our $batchopts_step2 = "-q medium.q  -pe OpenMP 1  -l mem_free=12G,h_rt=12:00:00 -V -cwd -terse -b y";
-	our $batchopts_step3 = "-q medium.q  -pe OpenMP 1  -l mem_free=12G,h_rt=48:00:00 -V -cwd -terse -b y";
-}
-else{
-	our $batchtype = "pbs";
-	our $batchopts_step1 = "-q cu -l mem=4g -V";
-	our $batchopts_step2 = "-q cu -l mem=12g -V";
-	our $batchopts_step3 = "-q cu -l mem=12g -V";
-}
+# }
+# elsif(-d '/home/userrig'){
+# 	our $batchtype = "sge";
+# 	our $batchopts_step1 = "-q medium.q  -pe OpenMP 1  -l mem_free=4G,h_rt=12:00:00 -V -cwd -terse -b y";
+# 	our $batchopts_step2 = "-q medium.q  -pe OpenMP 1  -l mem_free=12G,h_rt=12:00:00 -V -cwd -terse -b y";
+# 	our $batchopts_step3 = "-q medium.q  -pe OpenMP 1  -l mem_free=12G,h_rt=48:00:00 -V -cwd -terse -b y";
+# }
+# else{
+# 	our $batchtype = "pbs";
+# 	our $batchopts_step1 = "-q cu -l mem=4g -V";
+# 	our $batchopts_step2 = "-q cu -l mem=12g -V";
+# 	our $batchopts_step3 = "-q cu -l mem=12g -V";
+# }
+
+our $batchtype = "pbs";
+our $batchopts_step1 = "-q cu -l mem=4g -V";
+our $batchopts_step2 = "-q cu -l mem=12g -V";
+our $batchopts_step3 = "-q cu -l mem=12g -V";
 
 ############################################################
 ### MODIFY THESE VARIABLES TO IF REFERENCE IS LOCATED ELSEWHERE

@@ -77,7 +77,7 @@ def main():
         sys.exit(1)
 
     with open(args.input, 'r') as fh:   
-        data = yaml.load(fh)
+        data = yaml.safe_load(fh)
     CHRS = str(data['users']['chrs']).split('-')
 
 

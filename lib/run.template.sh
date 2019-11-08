@@ -40,6 +40,7 @@
 # cpu & memory: memory shoots up for heavily multiplexed libraries
 #PBS -l mem=4g
 #PBS -q cu
+#PBS -V
 
 DEBUG=${{DEBUG:-0}}
 #export DRMAA_LIBRARY_PATH=
@@ -48,7 +49,7 @@ DRMAA_OFF=1
 DEFAULT_SLAVE_Q={DEFAULT_SLAVE_Q}
 SNAKEFILE={SNAKEFILE}
 LOGDIR="{LOGDIR}";# should be same as defined above
-DEFAULT_SNAKEMAKE_ARGS="--rerun-incomplete --printshellcmds --stats $LOGDIR/snakemake.stats --configfile conf.yaml --latency-wait 120"
+DEFAULT_SNAKEMAKE_ARGS="--rerun-incomplete --printshellcmds --stats $LOGDIR/{PIPELINE_NAME}.stats --configfile conf.yaml --latency-wait 1200"
 # --rerun-incomplete: see https://groups.google.com/forum/#!topic/snakemake/fbQbnD8yYkQ
 # --timestamp: prints timestamps in log
 # --printshellcmds: also prints actual commands
@@ -61,7 +62,10 @@ if [ "$PBS_ENVIRONMENT" == "PBS_BATCH" ]; then
     # log files names: qsub -o|-e: "If path is a directory, the standard error stream of
     clustercmd="$clustercmd -e $LOGDIR -o $LOGDIR"
     # PBS: cwd (workaround for missing SGE option "-cwd")
-    cd $PBS_O_WORKDIR
+    # for Torque, when submitting a batch job from a running interactive job and with 
+    # option -V, $PBS_O_PATH is no longer the directory from which the job is submitted.
+    # Therefore, the correct working directory has to be specified directly
+    cd {WORKING_DIR}
     if [ -n "$SLAVE_Q" ]; then
         clustercmd="$clustercmd -q $SLAVE_Q"
     elif [ -n "$DEFAULT_SLAVE_Q" ]; then 
