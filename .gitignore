@@ -1,0 +1,10 @@
+*.pyc
+topMed/gotcloud.ref/1000G_omni2.5.b37.sites.PASS.vcf.gz
+topMed/gotcloud.ref/hapmap_3.3.b37.sites.vcf.gz
+topMed/gotcloud.ref/hs37d5.fa
+topMed/gotcloud.ref/hs37d5.fa.fai
+resources/data_v5a_filtered
+resources/geneticMap_GRCh37
+!resources/SeqCap_EZ_Exome_v3_primary.bed
+!resources/hdr.txt
+!resources/hdr_X.txt
