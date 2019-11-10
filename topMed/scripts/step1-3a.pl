@@ -22,7 +22,7 @@ if($result!=0) {die()};
 
 if($type eq "WES"){
    # Add the sites existing in 1KG3 reference panel but absent in the discover step.  
-   $result = system("perl $scriptPath/add1KG3Sites.pl out/aux/union $chr  $scriptPath $sitePath"."_sites");
+   $result = system("perl $scriptPath/add1KG3Sites.pl out/aux/union $chr  $scriptPath $sitePath");
    if($result!=0) {die()};
 }
 
