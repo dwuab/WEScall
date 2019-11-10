@@ -84,7 +84,8 @@ rule phasingWithoutRef:
     """ phasing without reference using beagle 
     """  
     input:
-        lambda wildcards: expand('{chr}/chr{chr}.phasingNoRef.{ID}.vcf.gz', chr=wildcards.chr, ID=chr_split[wildcards.chr])  
+        vcf=lambda wildcards: expand('{chr}/chr{chr}.phasingNoRef.{ID}.vcf.gz', chr=wildcards.chr, ID=chr_split[wildcards.chr]), 
+        OK=lambda wildcards: expand('{chr}/chr{chr}.phasingNoRef.{ID}.vcf.gz.OK', chr=wildcards.chr, ID=chr_split[wildcards.chr])
     output:
         '{chr}/{chr}.PhaseNoRef.OK'
     params:
@@ -93,8 +94,11 @@ rule phasingWithoutRef:
     threads:
         1
     run:
-        vcf=orderVCF({input}),
-        shell("java -jar {params.javaOption} {APP}/mergevcf.jar {params.mychr} {vcf} | bgzip -c > {params.mychr}/{params.mychr}.PhaseNoRef.vcf.gz"),
+        vcf=orderVCF({input.vcf}),
+        if len(input.vcf)==1:
+            shell("cp {vcf} {params.mychr}/{params.mychr}.PhaseNoRef.vcf.gz")
+        else:
+            shell("java -jar {params.javaOption} {APP}/mergevcf.jar {params.mychr} {vcf} | bgzip -c > {params.mychr}/{params.mychr}.PhaseNoRef.vcf.gz"),
         shell("touch {params.mychr}/{params.mychr}.PhaseNoRef.OK") 
 
 
@@ -105,7 +109,8 @@ rule phasingWithoutRef_parallel:
     input:
         '{chr}/chr{chr}.Split.{ID}.vcf.gz'
     output:
-        '{chr}/chr{chr}.phasingNoRef.{ID}.vcf.gz'
+        '{chr}/chr{chr}.phasingNoRef.{ID}.vcf.gz',
+        touch('{chr}/chr{chr}.phasingNoRef.{ID}.vcf.gz.OK')
     params:
         resourcePath=config['users']['geneticMap'],
         javaOption='-Xmx10g',
@@ -122,7 +127,6 @@ rule phasingWithoutRef_parallel:
               " map={params.resourcePath}/plink.chr{params.mychr}.GRCh37.map"
               " chrom={params.mychr}"
               " niterations=0  out={params.prefix}"),
-            shell("touch {output}.OK")
 
 
 
@@ -130,7 +134,8 @@ rule phasingWithRef:
     """ phasing  reference using beagle 
     """  
     input:
-        lambda wildcards: expand('{chr}/chr{chr}.phasingWithRef.{job}.vcf.gz', chr=wildcards.chr, job=chr_split[wildcards.chr])  
+        OK=lambda wildcards: expand('{chr}/chr{chr}.phasingWithRef.{job}.vcf.gz.OK', chr=wildcards.chr, job=chr_split[wildcards.chr]),
+        vcf=lambda wildcards: expand('{chr}/chr{chr}.phasingWithRef.{job}.vcf.gz', chr=wildcards.chr, job=chr_split[wildcards.chr])  
     output:
         '{chr}/{chr}.PhaseWithRef.OK'
     params:
@@ -139,8 +144,12 @@ rule phasingWithRef:
     threads:
         1
     run:
-        vcf=orderVCF({input}),
-        shell("java -jar {params.javaOption} {APP}/mergevcf.jar {params.mychr} {vcf} | bgzip -c > {params.mychr}/{params.mychr}.PhaseWithRef.vcf.gz"),
+        vcf=orderVCF({input.vcf})
+        print(vcf)
+        if len(input.vcf)==1:
+            shell("cp {vcf} {params.mychr}/{params.mychr}.PhaseWithRef.vcf.gz")
+        else:
+            shell("java -jar {params.javaOption} {APP}/mergevcf.jar {params.mychr} {vcf} | bgzip -c > {params.mychr}/{params.mychr}.PhaseWithRef.vcf.gz"),
         shell("touch {params.mychr}/{params.mychr}.PhaseWithRef.OK") 
 
 
@@ -151,7 +160,8 @@ rule phasingWithRef_parallel:
     input:
         '{chr}/chr{chr}.Split.{job}.vcf.gz'
     output:
-        '{chr}/chr{chr}.phasingWithRef.{job}.vcf.gz'
+        '{chr}/chr{chr}.phasingWithRef.{job}.vcf.gz',
+        touch('{chr}/chr{chr}.phasingWithRef.{job}.vcf.gz.OK')
     params:
         geneticPath=config['users']['geneticMap'],
         refPanelPath=config['users']['1KG3_panel'],
@@ -169,5 +179,4 @@ rule phasingWithRef_parallel:
               " map={params.geneticPath}/plink.chr{params.mychr}.GRCh37.map"
               " chrom={params.mychr}"
               " ref={params.refPanelPath}/ALL.chr{params.mychr}.phase3.20130502.SNP.indel.biallelic.mac5.vcf.gz"
-              " niterations=0  out={params.prefix}"),
-            shell("touch {output}.OK")
+              " niterations=0  out={params.prefix}")
