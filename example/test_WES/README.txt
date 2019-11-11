@@ -1,17 +1,15 @@
 ############################################
-pipelineDir="/mnt/projects/wangcl/ancestry/software/pipelines_web_dev"
-pythonPath="/mnt/projects/rpd/apps/miniconda3/bin/python"
+# set the paths appropriately according to the settings on your server
+pipelineDir=`cwd`/..
+pythonPath="/opt/software/miniconda3/bin/python"
 
 ############################################ 
 # Prepare for the sample configure file
-# test.index : aligned sequenced reads in BAM/CRAM format. The third column denotes the contamination rate. 
-# test.ped : a pedigree file of nuclear families. As no pedigree information is required in our pipeline, we set the first three columns the sample IDs, the fourth and fifth columns zero. 
+# samples.index : aligned sequenced reads in BAM/CRAM format. The third column denotes the contamination rate. 
 # user.cfg.yaml : specify parameters 
 
-rm -rf varCall
-
 # generate the command 
-${pythonPath} ${pipelineDir}/varCall/runTopMed.py -c  user.cfg.yaml   -i test.index -p test.ped  -t WES -n
+${pythonPath} ${pipelineDir}/varCall/runTopMed.py -c  user.cfg.yaml -i samples.index -t WES -n
 cd varCall
 qsub run.sh >> ./logs/submission.log
 
