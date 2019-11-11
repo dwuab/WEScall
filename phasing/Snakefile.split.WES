@@ -77,7 +77,7 @@ rule bcfMerge:
     run:
         shell("mkdir -p {params.mychr}"),
         vcf=orderVCF({input}),
-	print({vcf}),
+        print({vcf}),
         shell("{APP}/bcftools concat {vcf}  -o  {params.mychr}/{params.mychr}.all.vcf.gz  -O z >& {log}"),
         shell("touch {params.mychr}/bcfMerge.{params.mychr}.OK")
 
@@ -90,12 +90,12 @@ rule Filter:
        log='{chr}/{chr}.Filter.OK'
     params:
        resourcePath=config['users']['1KG3_panel'],       
-       mychr='{chr}'   
+       mychr='{chr}'
     threads:
        1  
     run:
        shell("perl {SCRIPT}/QC.pl --invcf {params.mychr}/{params.mychr}.all.vcf.gz --removeLst {input.site}" 
-         "  --keepLst {params.resourcePath}_sites/ALL.{params.mychr}.phase3.20130502.SNP.indel.biallelic.MAF1.sites.vcf.gz" 
+         "  --keepLst {params.resourcePath}/ALL.chr{params.mychr}.phase3.20130502.SNP.biallelic.MAF0.01.sites.vcf.gz" 
          "  --out {output.vcf}  --type WES"),
        shell("touch {params.mychr}/{params.mychr}.Filter.OK")
 

@@ -89,8 +89,13 @@ elsif($type eq "WES"){
 	my $targetTotal=0;
 	my $targetFail=0;
 	my $offtarget_1KG3=0;
-	if ($rmLst =~ m/\.gz$/){open(IN,"gunzip -c $rmLst |");}
-	else{open(IN,$rmLst) || die "Cannot open $rmLst\n";}
+	if ($rmLst =~ m/\.gz$/){
+		if (! -e $rmLst) {
+			die "$rmLst does not exists!\n";
+		}
+		open(IN,"gunzip -c $rmLst |") || die "Cannot open $rmLst\n";}
+	else {
+		open(IN,$rmLst) || die "Cannot open $rmLst\n";}
 	while(<IN>){
 		chomp;
 		# if($_=~/#/ || $_=~/overlap/){;}  # remove the overlap flag 
@@ -107,9 +112,16 @@ elsif($type eq "WES"){
                 }
 	}
 	close(IN);
+
 	print "$rmLst  total markers $targetTotal ... svm filter markers $targetFail\n";
-	if ($keepLst =~ m/\.gz$/){open(IN,"gunzip -c $keepLst |");}
-	else{open(IN,$keepLst) || die "Cannot open $keepLst\n";}
+	if ($keepLst =~ m/\.gz$/){
+		if (! -e $keepLst) {
+			die "$keepLst does not exists!\n";
+		}
+		open(IN,"gunzip -c $keepLst |") || die "Cannot open $keepLst\n";
+	}
+	else {
+		open(IN,$keepLst) || die "Cannot open $keepLst\n";}
 	while(<IN>){
 		chomp;
 		if($_=~/#/){;}  
@@ -127,8 +139,13 @@ elsif($type eq "WES"){
 	my $targetInCnt=0;
 	my $offtargetInCnt=0;
 	open O, "| bgzip -c >  $out";
-	if ($invcf =~ m/\.gz$/){open(IN,"gunzip -c $invcf |");}
-	else{open(IN,$invcf) || die "Cannot open $invcf\n";}
+	if ($invcf =~ m/\.gz$/){
+		if (! -e $invcf) {
+			die "$invcf does not exists!\n";
+		}
+		open(IN,"gunzip -c $invcf |") || die "Cannot open $invcf\n";}
+	else {
+		open(IN,$invcf) || die "Cannot open $invcf\n";}
 	while(<IN>){
 		chomp;		
 		if($_=~/#/){print O "$_\n";}

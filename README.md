@@ -28,7 +28,7 @@ Details of this pipeline can be found in our paper:
 
 You can download our pipeline by the following command:
 
-`git clone https://github.com/jinzhuangdou/WEScall.git` 
+`git clone https://github.com/dwuab/WEScall.git` 
 
 This command will create a folder named "WEScall". 
 
