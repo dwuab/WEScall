@@ -1,13 +1,5 @@
 # WEScall
 
-TODO:
-  - Vcf.pm required by apps/vcf-concat
-  - automatically generate samples.ped
-  - .ped file has to be very specific in order to pass through vt milk-filter: sample, father and mother IDs have to be the same!
-  - new dependency: Vcf.pm
-  - scripts for generating 1KG reference panels
-  - a script to check required files
-
 #### Authors: Jinzhuang Dou, [Chaolong Wang](http://chaolongwang.github.io)
 
 #### License: [GNU General Public License v3.0 (GPLv3)](https://www.gnu.org/licenses/gpl-3.0.en.html)
@@ -17,7 +9,7 @@ TODO:
 
 The WES genotype calling (WEScall) pipeline can perform variant calling of whole exome sequencing (WES) data as well as whole genome sequencing (WGS) data. It can call genotypes accurately in both target and off-target regions by making full utilization of off-target reads. 
 WEScall can: 
-* runs on HPC cluster, supporting both PBS and SGE environments.
+* runs on HPC cluster, can be configured to support PBS, SGE and other environments.
 * handles cluster specifics internally and users don't need to worry about the scheduler usage.
 * runs automatically in parallel to make optimal use of resources where possible. 
 
@@ -48,9 +40,15 @@ This command will create a folder named "WEScall".
 
 ### 5.1 Setting up for your cluster
 
-As there are no reliable ways to automatically detect the type of job scheduling systems (SGE, PBS, etc.), you have to do some set-up before running the pipeline. You should check `${PL_DIR}/lib/run.template.sh` and `${PL_DIR}/topMed/scripts/gcconfig.pm` and modify them if necessary. The default settings are tested on a cluster Torque (An implementation of PBS). Earlier versions of this pipeline have been tested on a SGE cluster and a PBS Pro cluster. Template files for SGE and PBS Pro clusters are provided for reference under `${PL_DIR}/lib/`. Settings for SGE and PBS Pro clusters are also provided in the comments in `${PL_DIR}/topMed/scripts/gcconfig.pm`.
+As there are no reliable ways to automatically detect the type of job scheduling systems (SGE, PBS, etc.), you have to do some set-up before running the pipeline. You should check `${PL_DIR}/lib/run.template.sh` and `${PL_DIR}/topMed/scripts/gcconfig.pm` and modify them if necessary. The default settings are tested on a Torque (An implementation of PBS) cluster. Earlier versions of this pipeline have been tested on a SGE cluster and a PBS Pro cluster. Template files for SGE and PBS Pro clusters are provided for reference under `${PL_DIR}/lib/`. Settings for SGE and PBS Pro clusters are also provided in the comments in `${PL_DIR}/topMed/scripts/gcconfig.pm`.
 
-### 5.2 Downloading resource files 
+### 5.2 Generating 1KG reference panel
+
+This piepeline requires 1KG reference panel files specially prepared. A script, create_g1k_ref.sh, is provided to generate the files needed from official 1KGP3 release .vcf files.
+
+### 5.3 Setting up links to resource files
+
+This pipeline requires genetic maps from Beagle. TopMed pipeline requires several resource files from gotcloud bundles. These files are huge in size so they will not be provided here. Run the script "check_resources.sh" to check what resources files you lack and ways to download it.
 
 ## 6. Running the pipeline
 
