@@ -8,6 +8,11 @@ set -e
 printf "Checking whether required resources existed in the proper place.\n"
 printf "You should see \"Checking completed!\" if everything is fine.\n"
 
+if [ ! -e resources/SeqCap_EZ_Exome_v3_primary.bed ]; then
+	printf "unzipping resources/SeqCap_EZ_Exome_v3_primary.bed.gz\n"
+	gunzip resources/SeqCap_EZ_Exome_v3_primary.bed.gz -c > resources/SeqCap_EZ_Exome_v3_primary.bed
+fi
+
 genetic_map_location=resources/geneticMap_GRCh37
 printf "Expecting genetic map at %s\n" ${genetic_map_location}
 if [ ! -d ${genetic_map_location} ]; then
@@ -40,16 +45,6 @@ else
 	echo OK!
 fi
 
-hapmap_location=topMed/gotcloud.ref/hapmap_3.3.b37.sites.vcf.gz
-printf "Expecting %s at topMed/gotcloud.ref\n" $hapmap_location
-if [ ! -e ${hapmap_location} ]; then
-	printf "%s not found!\n" ${hapmap_location}
-	printf "You can download it from gotcloud bundle at %s\n" "ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/b37/hapmap_3.3.b37.sites.vcf.gz"
-	exit
-else
-	echo OK!
-fi
-
 refGenome_location=topMed/gotcloud.ref/hs37d5.fa
 printf "Expecting %s at topMed/gotcloud.ref\n" $refGenome_location
 if [ ! -e ${refGenome_location} ]; then
@@ -60,7 +55,7 @@ else
 	echo OK!
 fi
 
-refGenome_index_location=topMed/gotcloud.ref/hs37da5.fa.fai
+refGenome_index_location=topMed/gotcloud.ref/hs37d5.fa.fai
 printf "Expecting %s at topMed/gotcloud.ref\n" $refGenome_index_location
 if [ ! -e ${refGenome_index_location} ]; then
 	printf "%s not found!\n" ${refGenome_index_location}
