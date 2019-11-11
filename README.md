@@ -44,11 +44,11 @@ As there are no reliable ways to automatically detect the type of job scheduling
 
 ### 5.2 Generating 1KG reference panel
 
-This piepeline requires 1KG reference panel files specially prepared. A script, create_g1k_ref.sh, is provided to generate the files needed from official 1KGP3 release .vcf files.
+**Please run** `create_g1k_ref.sh` to generate the files needed from official 1KGP3 release .vcf files.
 
 ### 5.3 Setting up links to resource files
 
-This pipeline requires genetic maps from Beagle. TopMed pipeline requires several resource files from gotcloud bundles. These files are huge in size so they will not be provided here. Run the script "check_resources.sh" to check what resources files you lack and ways to download it.
+**Please run** `check_resources.sh` to check what resources files you lack and ways to download it.
 
 ## 6. Running the pipeline
 
