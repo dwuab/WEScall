@@ -103,7 +103,9 @@ foreach my $chr (@chrs) {
     open(IN,"zcat $milkVcf | cut -f 1-8| grep -v ^#|") || die "Cannot open file\n";
     while(<IN>) {
 	my @F = split;
+	# skip if the number of alt > 1
 	next if ( $F[4] =~ /,/ );
+	# skip if the site is not SNP and FILTER filed is not "."
 	next if ( ( ( length($F[3]) > 1 ) || ( length($F[4]) > 1 ) ) && ( $F[6] ne "." ) );
 
 	my $ac = $1 if ( $F[7] =~ /AC=(\d+)/ );
