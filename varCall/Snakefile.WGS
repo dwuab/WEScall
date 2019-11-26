@@ -27,7 +27,9 @@ shell.executable("/bin/bash")
 #include: "../rules/logging.rules"
 #include: "../rules/report.rules"
 
-CHRS = config['users']['chrs'].split('-')
+# When there is only one number in config['users']['chrs'], the type of config['users']['chrs']
+# will be integer. Therefore, I have to unconditonally convert config['users']['chrs'] to string
+CHRS = str(config['users']['chrs']).split('-')
 #TOPMED = config['users']['topMed']
 REFPANEL = config['users']['1KG3_panel']
 
@@ -46,7 +48,6 @@ TOPMED = os.path.join(TMP,"../topMed")
 #step2_cpu = config['users']['JointCall_MaxJob_per_chr']
 #step3_cpu = config['users']['SvmFilter_MaxJob_per_chr']
 
-print(CHRS)
 
 rule all:
 	input:

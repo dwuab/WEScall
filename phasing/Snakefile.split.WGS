@@ -54,7 +54,9 @@ shell.executable("/bin/bash")
 
 
 
-CHRS = config['users']['chrs'].split('-')
+# When there is only one number in config['users']['chrs'], the type of config['users']['chrs']
+# will be integer. Therefore, I have to unconditonally convert config['users']['chrs'] to string
+CHRS = str(config['users']['chrs']).split('-')
 TMP  = os.path.dirname(os.path.realpath(workflow.snakefile))
 APP  = os.path.join(TMP, "../apps")
 SCRIPT = os.path.join(TMP, "../lib")
