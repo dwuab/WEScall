@@ -75,19 +75,27 @@ foreach my $chr (@chrs) {
     print STDERR "Loading positive labels..\n";
     ## LABEL positive samples
     foreach my $posVcf (@posVcfs) {
- 	if($chr ne "X" && $chr==0) {
- 		open(IN,"zcat $posVcf | grep -w PASS|") || die "Cannot open file\n";
- 	}
- 	else{
-		open(IN,"$tabix $posVcf $chr:1-$szchr| grep -w PASS|") || die "Cannot open file\n";
-	}
-	while(<IN>) {
-	    next if ( /^#/ );
-	    my ($chrom,$pos,$id,$ref,$alt) = split;
-	    #next if ( $pos > $szchr/2 ); ## temporary for CV
-	    #$hpos{"$chrom:$pos:$ref:$alt"} = 1;
-	    $hpos{"$chrom:$pos"} = "$ref:$alt";
-	}
+    	# check existence of vcf file
+    	die "$posVcf cannot be found!\n" if (!(-e $posVcf));
+    	# check existence of vcf index file
+    	die "$posVcf cannot be found!\n" if (!(-e $posVcf.".tbi"));
+	 	if($chr ne "X" && $chr==0) {
+	 		open(IN,"zcat $posVcf | grep -w PASS|") || die "Cannot open file $posVcf\n";
+	 	}
+	 	else{
+	 		# for some reason the 
+	 		if ( ! -e "$posVcf.tbi" ) {
+	 			die "Index $posVcf.tbi does not exist!\n";
+	 		}
+			open(IN,"$tabix $posVcf $chr:1-$szchr| grep -w PASS|") || die "Cannot open file\n";
+		}
+		while(<IN>) {
+		    next if ( /^#/ );
+		    my ($chrom,$pos,$id,$ref,$alt) = split;
+		    #next if ( $pos > $szchr/2 ); ## temporary for CV
+		    #$hpos{"$chrom:$pos:$ref:$alt"} = 1;
+		    $hpos{"$chrom:$pos"} = "$ref:$alt";
+		}
     }
 
     my %hneg = ();

@@ -80,7 +80,10 @@ foreach my $chr (@chrs) {
     print STDERR "Loading positive labels..\n";
     ## LABEL positive samples
     foreach my $posVcf (@posVcfs) {
+    	# check existence of vcf file
     	die "$posVcf cannot be found!\n" if (!(-e $posVcf));
+    	# check existence of vcf index file
+    	die "$posVcf cannot be found!\n" if (!(-e $posVcf.".tbi"));
  	if($chr < 1) {
  		open(IN,"zcat $posVcf | grep -w PASS|") || die "Cannot open file\n";
  	}
