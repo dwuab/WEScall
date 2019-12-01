@@ -5,15 +5,17 @@
 
 set -e
 
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
 printf "Checking whether required resources existed in the proper place.\n"
 printf "You should see \"Checking completed!\" if everything is fine.\n"
 
-if [ ! -e resources/SeqCap_EZ_Exome_v3_primary.bed ]; then
+if [ ! -e ${DIR}/resources/SeqCap_EZ_Exome_v3_primary.bed ]; then
 	printf "unzipping resources/SeqCap_EZ_Exome_v3_primary.bed.gz\n"
-	gunzip resources/SeqCap_EZ_Exome_v3_primary.bed.gz -c > resources/SeqCap_EZ_Exome_v3_primary.bed
+	gunzip ${DIR}/resources/SeqCap_EZ_Exome_v3_primary.bed.gz -c > ${DIR}/resources/SeqCap_EZ_Exome_v3_primary.bed
 fi
 
-genetic_map_location=resources/geneticMap_GRCh37
+genetic_map_location=${DIR}/resources/geneticMap_GRCh37
 printf "Expecting genetic map at %s\n" ${genetic_map_location}
 if [ ! -d ${genetic_map_location} ]; then
 	printf "Genetic maps not found at %s! Genetic maps can be downloaded from %s\n" \
@@ -24,7 +26,7 @@ else
 	echo OK!
 fi
 
-g1k_ref_location=resources/data_v5a_filtered
+g1k_ref_location=${DIR}/resources/data_v5a_filtered
 printf "Expecting 1KG reference panel at %s\n" ${g1k_ref_location}
 if [ ! -d ${g1k_ref_location} ]; then
 	printf "1KG reference panel not found at %s!\n" ${g1k_ref_location}
@@ -34,28 +36,58 @@ else
 	echo OK!
 fi
 
-url_gotcloud_bundle=ftp://share.sph.umich.edu/vt/grch37/
-g1k_omni25_location=topMed/gotcloud.ref/1000G_omni2.5.b37.sites.PASS.vcf.gz
+gotcloud_url=ftp://anonymous@share.sph.umich.edu/gotcloud/ref/hs37d5-db142-v1.tgz
+g1k_omni25_location=${DIR}/topMed/gotcloud.ref/1000G_omni2.5.b37.sites.PASS.vcf.gz
 printf "Expecting %s at topMed/gotcloud.ref\n" $g1k_omni25_location
 if [ ! -e ${g1k_omni25_location} ]; then
 	printf "%s not found!\n" ${g1k_omni25_location}
-	printf "You can download it from %s\n" "ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/b37/1000G_omni2.5.b37.vcf.gz"
+	printf "You can get it from gotcloud resource bundle at %s\n" ${gotcloud_url}
 	exit
 else
 	echo OK!
 fi
 
-refGenome_location=topMed/gotcloud.ref/hs37d5.fa
+g1k_omni25_index_location=${DIR}/topMed/gotcloud.ref/1000G_omni2.5.b37.sites.PASS.vcf.gz.tbi
+printf "Expecting %s at topMed/gotcloud.ref\n" $g1k_omni25_index_location
+if [ ! -e ${g1k_omni25_index_location} ]; then
+	printf "%s not found!\n" ${g1k_omni25_index_location}
+	printf "You can index %s by tabix" ${g1k_omni25_index_location}
+	exit
+else
+	echo OK!
+fi
+
+hapmap_sites_location=${DIR}/topMed/gotcloud.ref/hapmap_3.3.b37.sites.vcf.gz
+printf "Expecting %s at topMed/gotcloud.ref\n" $hapmap_sites_location
+if [ ! -e ${hapmap_sites_location} ]; then
+	printf "%s not found!\n" ${hapmap_sites_location}
+	printf "You can get it from gotcloud resource bundle at %s\n" ${gotcloud_url}
+	exit
+else
+	echo OK!
+fi
+
+hapmap_sites_index_location=${DIR}/topMed/gotcloud.ref/hapmap_3.3.b37.sites.vcf.gz.tbi
+printf "Expecting %s at topMed/gotcloud.ref\n" $hapmap_sites_index_location
+if [ ! -e ${hapmap_sites_index_location} ]; then
+	printf "%s not found!\n" ${hapmap_sites_index_location}
+	printf "You can index %s by tabix" ${hapmap_sites_index_location}
+	exit
+else
+	echo OK!
+fi
+
+refGenome_location=${DIR}/topMed/gotcloud.ref/hs37d5.fa
 printf "Expecting %s at topMed/gotcloud.ref\n" $refGenome_location
 if [ ! -e ${refGenome_location} ]; then
 	printf "%s not found!\n" ${refGenome_location}
-	printf "You can download it from gotcloud bundle at %s\n" ftp://share.sph.umich.edu/vt/grch37/hs37d5.fa
+	printf "You can get it from gotcloud resource bundle at %s\n" ${gotcloud_url}
 	exit
 else
 	echo OK!
 fi
 
-refGenome_index_location=topMed/gotcloud.ref/hs37d5.fa.fai
+refGenome_index_location=${DIR}/topMed/gotcloud.ref/hs37d5.fa.fai
 printf "Expecting %s at topMed/gotcloud.ref\n" $refGenome_index_location
 if [ ! -e ${refGenome_index_location} ]; then
 	printf "%s not found!\n" ${refGenome_index_location}
