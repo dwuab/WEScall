@@ -12,8 +12,8 @@ our @EXPORT = qw($regionBatchSize $REF_PATH $time_latency_job  $ref $md5 $bgzip 
 
 ############################################################
 ### MODIFY THESE VARIABLES TO YOUR COMPUTING ENVIRONMENT
-our $index = "./data/test.index";
-our $pedf = "./data/test.ped";
+our $index = "./data/samples.index";
+our $pedf = "./data/samples.ped";
 our $out = "out";
 # If you want to reduce the number of jobs in the cluster, please increase the sampleBatchSize and genotypeUnit 
 our $sampleBatchSize = 100; 

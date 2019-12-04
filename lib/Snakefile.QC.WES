@@ -1,0 +1,225 @@
+# QC module of WEScall pipeline
+
+import os
+
+CHRS = str(config['chrs']).split('-')
+
+# step1: extract results *.Final.vcf.gz resulted from LD refinment
+rule step1:
+	input:
+		target_bed=config['targetBed'],
+		final_vcf="../phasing/{chr}/{chr}.Final.vcf.gz"
+	output:
+		target_vcf="QC_WIP/{chr}.target.step1.vcf.gz",
+		off_target_vcf="QC_WIP/{chr}.off_target.step1.vcf.gz",
+		flag=touch("flags/{chr}.step1.OK")
+	run:
+		# using bcftools view -T rather than -R due to a long-exisitng bug of bcftools
+		shell("if [ ! -e {input.final_vcf}.csi ]; then bcftools index {input.final_vcf}; fi")
+
+		# assign ID to each variant to facilitate further filtering
+		shell("bcftools view -T {input.target_bed} {input.final_vcf} -Ou | "+
+			"bcftools annotate --set-id +'%CHROM\\_%POS\\_%REF\\_%FIRST_ALT' -Oz --threads 2 > {output.target_vcf}")
+		shell("bcftools view -T ^{input.target_bed} {input.final_vcf} -Ou | "+
+			"bcftools annotate --set-id +'%CHROM\\_%POS\\_%REF\\_%FIRST_ALT' -Oz --threads 2 > {output.off_target_vcf}")
+		
+		shell("bcftools index -f {output.target_vcf}")
+		shell("bcftools index -f {output.off_target_vcf}")
+
+
+# step 2: filtering according to minor allele count (MAC) and DR2 thresholds
+rule step2:
+	input:
+		target_vcf="QC_WIP/{chr}.target.step1.vcf.gz",
+		off_target_vcf="QC_WIP/{chr}.off_target.step1.vcf.gz",
+		flag="flags/{chr}.step1.OK"
+	output:
+		flag=touch("flags/{chr}.step2.OK"),
+		target_vcf="QC_WIP/{chr}.target.step2.vcf.gz",
+		off_target_vcf="QC_WIP/{chr}.off_target.step2.vcf.gz",
+		target_excl_list="excl_list/{chr}.target.step2.excl.list.gz",
+		off_target_excl_list="excl_list/{chr}.off_target.step2.excl.list.gz"
+	params:
+		MAC_threshold=str(config["QC"]["MAC"]),
+		DR2_threshold=str(config["QC"]["DR2"])
+	run:
+		shell("bcftools view {input.target_vcf} -i 'MAC>{params.MAC_threshold} & INFO/DR2>={params.DR2_threshold}' -Oz --threads 2 > {output.target_vcf}")
+		shell("bcftools view {input.off_target_vcf} -i 'MAC>{params.MAC_threshold} & INFO/DR2>={params.DR2_threshold}' -Oz --threads 2 > {output.off_target_vcf}")
+		shell("bcftools index -f {output.target_vcf}")
+		shell("bcftools index -f {output.off_target_vcf}")
+
+		shell("bcftools isec -C {input.target_vcf} {output.target_vcf} -Oz -p tmp/step2_target")
+		shell("bcftools isec -C {input.off_target_vcf} {output.off_target_vcf} -Oz -p tmp/step2_off_target")
+		shell("sed -e '1i\\ID\\tDR2\\tAF' <(bcftools query tmp/step2_target/0000.vcf.gz -f '%ID\t%INFO/DR2\t%INFO/AF\n') | bgzip -c > {output.target_excl_list}")
+		shell("sed -e '1i\\ID\\tDR2\\tAF' <(bcftools query tmp/step2_off_target/0000.vcf.gz -f '%ID\t%INFO/DR2\t%INFO/AF\n') | bgzip -c > {output.off_target_excl_list}")
+
+# step 3: filtering according to HWE thershold
+rule step3:
+	input:
+		flag="flags/{chr}.step2.OK",
+		target_vcf="QC_WIP/{chr}.target.step2.vcf.gz",
+		off_target_vcf="QC_WIP/{chr}.off_target.step2.vcf.gz"
+	output:
+		flag=touch("flags/{chr}.step3.OK"),
+		target_vcf="QC_WIP/{chr}.target.step3.vcf.gz",
+		target_vcf_tmp=temp("tmp/{chr}.target.step3.tmp.vcf.gz"),
+		off_target_vcf="QC_WIP/{chr}.off_target.step3.vcf.gz",
+		off_target_vcf_tmp=temp("tmp/{chr}.off_target.step3.vcf.gz"),
+		target_excl_list="excl_list/{chr}.target.step3.excl.list.gz",
+		off_target_excl_list="excl_list/{chr}.off_target.step3.excl.list.gz"
+	params:
+		HWE_thershold=str(config["QC"]["HWE"])
+	run:
+		shell("bcftools +fill-tags -Oz {input.target_vcf} -- -t HWE  > {output.target_vcf_tmp}")
+		shell("bcftools +fill-tags -Oz {input.off_target_vcf} -- -t HWE > {output.off_target_vcf_tmp}")
+		
+		shell("bcftools view -e 'INFO/HWE<{params.HWE_thershold}' {output.target_vcf_tmp} -Oz > {output.target_vcf}")
+		shell("bcftools view -e 'INFO/HWE<{params.HWE_thershold}' {output.off_target_vcf_tmp} -Oz > {output.off_target_vcf}")
+
+		shell("bcftools index -f {output.target_vcf_tmp}")
+		shell("bcftools index -f {output.off_target_vcf_tmp}")
+		shell("bcftools index -f {output.target_vcf}")
+		shell("bcftools index -f {output.off_target_vcf}")
+
+		shell("bcftools isec -C {output.target_vcf_tmp} {output.target_vcf} -Oz -p tmp/step3_target")
+		shell("bcftools isec -C {output.off_target_vcf_tmp} {output.off_target_vcf} -Oz -p tmp/step3_off_target")
+		shell("sed -e '1i\\ID\\tHWE' <(bcftools query tmp/step3_target/0000.vcf.gz -f '%ID\t%INFO/HWE\n') | bgzip -c > {output.target_excl_list}")
+		shell("sed -e '1i\\ID\\tHWE' <(bcftools query tmp/step3_off_target/0000.vcf.gz -f '%ID\t%INFO/HWE\n') | bgzip -c > {output.off_target_excl_list}")
+
+# step 4: filtering according to depth
+rule step4:
+	input:
+		flag="flags/{chr}.step3.OK",
+		target_vcf="QC_WIP/{chr}.target.step3.vcf.gz",
+		off_target_vcf="QC_WIP/{chr}.off_target.step3.vcf.gz",
+		filter_vcf="../phasing/{chr}/{chr}.Filter.vcf.gz",
+		target_bed=config['targetBed']
+	output:
+		flag=touch("flags/{chr}.step4.OK"),
+		target_vcf="QC_WIP/{chr}.target.step4.vcf.gz",
+		target_vcf_tmp=temp("tmp/{chr}.target.step4.tmp.vcf.gz"),
+		off_target_vcf="QC_WIP/{chr}.off_target.step4.vcf.gz",
+		off_target_vcf_tmp=temp("tmp/{chr}.off_target.step4.tmp.vcf.gz"),
+		target_excl_list="excl_list/{chr}.target.step4.excl.list.gz",
+		off_target_excl_list="excl_list/{chr}.off_target.step4.excl.list.gz",
+	params:
+		DP_target=str(config["QC"]["DP_target"]),
+		DP_off_target=str(config["QC"]["DP_off_target"])
+	run:
+		shell("bcftools index -f {input.filter_vcf}")
+
+		# extract AVGDP from *.Filter.vcf.gz
+		shell("bcftools annotate -a {input.filter_vcf} -c AVGDP -h <(echo \"##INFO=<ID=AVGDP,Number=1,Type=Float,Description=\"Average Depth per Sample\">\") {input.target_vcf} -Oz > {output.target_vcf_tmp}")
+		shell("bcftools annotate -a {input.filter_vcf} -c AVGDP -h <(echo \"##INFO=<ID=AVGDP,Number=1,Type=Float,Description=\"Average Depth per Sample\">\") {input.off_target_vcf} -Oz > {output.off_target_vcf_tmp}")
+
+		shell("bcftools view -e 'INFO/AVGDP>{params.DP_target}' {output.target_vcf_tmp} -Oz > {output.target_vcf}")
+		shell("bcftools view -e 'INFO/AVGDP>{params.DP_off_target}' {output.off_target_vcf_tmp} -Oz > {output.off_target_vcf}")
+
+		# find out exclusion list
+		shell("bcftools index -f {output.target_vcf}")
+		shell("bcftools index -f {output.off_target_vcf}")
+		shell("bcftools index -f {output.target_vcf_tmp}")
+		shell("bcftools index -f {output.off_target_vcf_tmp}")
+		shell("bcftools isec -C {output.target_vcf_tmp} {output.target_vcf} -Oz -p tmp/step4_target")
+		shell("bcftools isec -C {output.off_target_vcf_tmp} {output.off_target_vcf} -Oz -p tmp/step4_off_target")
+		shell("sed -e '1i\\ID\\tAVGDP' <(bcftools query tmp/step4_target/0000.vcf.gz -f '%ID\t%INFO/AVGDP\n') | bgzip -c > {output.target_excl_list}")
+		shell("sed -e '1i\\ID\\tAVGDP' <(bcftools query tmp/step4_off_target/0000.vcf.gz -f '%ID\t%INFO/AVGDP\n') | bgzip -c > {output.off_target_excl_list}")
+
+
+# filtering SNPs according to their positions. If SNPs are within X bp of any indels
+# in 1000G, they will be filtered
+rule step5:
+	input:
+		flag="flags/{chr}.step4.OK",
+		target_vcf="QC_WIP/{chr}.target.step4.vcf.gz",
+		off_target_vcf="QC_WIP/{chr}.off_target.step4.vcf.gz"
+	output:
+		flag=touch("flags/{chr}.step5.OK"),
+		target_vcf="QC_WIP/{chr}.target.step5.vcf.gz",
+		target_snp_tmp=temp("tmp/{chr}.target.step5.snp.vcf.gz"),
+		target_indel_tmp=temp("tmp/{chr}.target.step5.indel.vcf.gz"),
+		off_target_vcf="QC_WIP/{chr}.off_target.step5.vcf.gz",
+		off_target_snp_tmp=temp("tmp/{chr}.off_target.step5.snp.vcf.gz"),
+		off_target_indel_tmp=temp("tmp/{chr}.off_target.step5.indel.vcf.gz"),
+		target_excl_list="excl_list/{chr}.target.step5.excl.list.gz",
+		off_target_excl_list="excl_list/{chr}.off_target.step5.excl.list.gz",
+	params:
+		indel_list=config["QC"]["g1k_indel_interval_bed"],
+		radius=config["QC"]["indel_excl"]
+	run:
+		shell("bcftools view --type snps {input.target_vcf} -Ou | "+
+			"bcftools view -T ^<(zcat {params.indel_list} | awk '{{print $1\"\\t\"$2-{params.radius}\"\\t\"$3+{params.radius}}}') > {output.target_snp_tmp}")
+		shell("bcftools view --type snps {input.off_target_vcf} -Ou | "+
+			"bcftools view -T ^<(zcat {params.indel_list} | awk '{{print $1\"\\t\"$2-{params.radius}\"\\t\"$3+{params.radius}}}') > {output.off_target_snp_tmp}")
+		shell("bcftools view --type indels {input.target_vcf} -Oz > {output.target_indel_tmp}")
+		shell("bcftools view --type indels {input.off_target_vcf} -Oz > {output.off_target_indel_tmp}")
+		shell("if [ ! -d {output.target_vcf}_tmp ]; then mkdir {output.target_vcf}_tmp; fi && bcftools concat {output.target_snp_tmp} {output.target_indel_tmp} -Ou | "+
+			"bcftools sort -m 1G -T {output.target_vcf}_tmp -Oz > {output.target_vcf}")
+		shell("if [ ! -d {output.off_target_vcf}_tmp ]; then mkdir {output.off_target_vcf}_tmp; fi && bcftools concat {output.off_target_snp_tmp} {output.off_target_indel_tmp} -Ou | "+
+			"bcftools sort -m 1G -T {output.off_target_vcf}_tmp -Oz > {output.off_target_vcf}")
+
+		shell("bcftools index -f {output.target_vcf}")
+		shell("bcftools index -f {output.off_target_vcf}")
+		shell("bcftools isec -C {input.target_vcf} {output.target_vcf} -Oz -p tmp/step5_target")
+		shell("bcftools isec -C {input.off_target_vcf} {output.off_target_vcf} -Oz -p tmp/step5_off_target")
+		shell("sed -e '1i\\ID' <(bcftools query tmp/step5_target/0000.vcf.gz -f '%ID\n') | bgzip -c > {output.target_excl_list}")
+		shell("sed -e '1i\\ID' <(bcftools query tmp/step5_off_target/0000.vcf.gz -f '%ID\n') | bgzip -c > {output.off_target_excl_list}")
+
+
+# filtering according to the fractions of samples in a particular site where its maximum GP is smaller than a threshold value
+rule step6:
+	input:
+		flag="flags/{chr}.step5.OK",
+		target_vcf="QC_WIP/{chr}.target.step5.vcf.gz",
+		off_target_vcf="QC_WIP/{chr}.off_target.step5.vcf.gz"
+	output:
+		flag=touch("flags/{chr}.step6.OK"),
+		target_vcf="QC_WIP/{chr}.target.step6.vcf.gz",
+		off_target_vcf="QC_WIP/{chr}.off_target.step6.vcf.gz",
+		target_excl_list="excl_list/{chr}.target.step6.excl.list.gz",
+		off_target_excl_list="excl_list/{chr}.off_target.step6.excl.list.gz",
+		target_excl_list_tmp=temp("tmp/{chr}.target.step6.excl.list"),
+		off_target_excl_list_tmp=temp("tmp/{chr}.off_target.step6.excl.list"),
+	run:
+		for region in ("target","off_target"):
+			with open(output[region+"_excl_list_tmp"],"w") as f_out:
+				for line in shell("bcftools query "+input[region+"_vcf"]+" -f '%ID\\t[%GP\\t]\\n'", iterable=True):
+					entry=line.strip().split("\t")
+					variant_ID=entry[0]
+					num_smp=len(entry[1:])
+					num_missing=0
+					for GP_trio in entry[1:]:
+						if max([float(num_str) for num_str in GP_trio.split(",")]) < config["QC"]["max_GP"]:
+							num_missing+=1
+					if (num_missing/num_smp>config["QC"]["missing_rate"]):
+						f_out.write(variant_ID+"\n")
+		shell("bcftools view {input.target_vcf} -e 'ID=@{output.target_excl_list_tmp}' -Oz > {output.target_vcf}")
+		shell("bcftools view {input.off_target_vcf} -e 'ID=@{output.off_target_excl_list_tmp}' -Oz > {output.off_target_vcf}")
+
+		shell("bcftools index -f {output.target_vcf}")
+		shell("bcftools index -f {output.off_target_vcf}")
+		shell("bcftools isec -C {input.target_vcf} {output.target_vcf} -Oz -p tmp/step6_target")
+		shell("bcftools isec -C {input.off_target_vcf} {output.off_target_vcf} -Oz -p tmp/step6_off_target")
+		shell("sed -e '1i\\ID' <(bcftools query tmp/step6_target/0000.vcf.gz -f '%ID\n') | bgzip -c > {output.target_excl_list}")
+		shell("sed -e '1i\\ID' <(bcftools query tmp/step6_off_target/0000.vcf.gz -f '%ID\n') | bgzip -c > {output.off_target_excl_list}")
+
+
+# merge target and off-target region
+rule merge:
+	input:
+		flag="flags/{chr}.step6.OK",
+		target_vcf="QC_WIP/{chr}.target.step6.vcf.gz",
+		off_target_vcf="QC_WIP/{chr}.off_target.step6.vcf.gz"
+	output:
+		merged_vcf="after_QC/{chr}.after_QC.vcf.gz",
+		flag=touch("flags/merge_chr{chr}.OK")
+	run:
+		shell("if [ ! -d {output.merged_vcf}_tmp ]; then mkdir {output.merged_vcf}_tmp; fi && "+
+			"bcftools concat {input.target_vcf} {input.off_target_vcf} -Ou | "+
+			"bcftools sort -m 1G -T {output.merged_vcf}_tmp -Oz > {output.merged_vcf}")
+		shell("bcftools index -f {output.merged_vcf}")
+
+
+rule all:
+	input:
+		flags=expand("flags/merge_chr{chr}.OK",chr=CHRS)

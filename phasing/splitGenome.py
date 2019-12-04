@@ -42,13 +42,12 @@ __license__ = "The MIT License (MIT)"
 yaml.Dumper.ignore_aliases = lambda *args: True
 
 
+# FIXME: sloppy code to identify pipeline_basedir
 PIPELINE_BASEDIR = os.path.dirname(sys.argv[0])
 CFG_DIR = os.path.join(PIPELINE_BASEDIR, "cfg")
 
 # same as folder name. also used for cluster job names
 PIPELINE_NAME = "splitGenome"
-
-MARK_DUPS = True
 
 # global logger
 logger = logging.getLogger(__name__)
