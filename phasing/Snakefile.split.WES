@@ -48,10 +48,14 @@ shell.executable("/bin/bash")
 
 
 # unconditionally convert CHRS to string to avoid config['users']['chrs'] being integer
-CHRS = str(config['users']['chrs']).split('-')
+CHRS = str(config['users']['chrs']).split(',')
 TMP  = os.path.dirname(os.path.realpath(workflow.snakefile))
 APP  = os.path.join(TMP, "../apps")
 SCRIPT = os.path.join(TMP, "../lib")
+
+
+wildcard_constraints:
+  chr="[1-9]|1[0-9]|2[0-2]|X"
 
 
 rule all:

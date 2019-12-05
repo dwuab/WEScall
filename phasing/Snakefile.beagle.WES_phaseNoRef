@@ -46,12 +46,17 @@ def orderVCF(para):
     return ' '.join(item)
 
 
-CHRS = config['users']['chrs'].split('-')
+CHRS = config['users']['chrs'].split(',')
 TMP  = os.path.dirname(os.path.realpath(workflow.snakefile))
 APP  = os.path.join(TMP, "../apps")
 SCRIPT = os.path.join(TMP, "../lib")
 chr_split = config['chr_split']
 print(chr_split)
+
+
+wildcard_constraints:
+    chr="[1-9]|1[0-9]|2[0-2]|X"
+
 
 rule all:
     input:

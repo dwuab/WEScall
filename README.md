@@ -61,17 +61,18 @@ Each line of `samples.index` is of the following format:
 ``` 
 **THERE CANNOT BE EMPTY LINES IN `samples.index` FILE!**
 The index file has to be **tab-delimited**. 
+BAM/CRAM files listed are assumed to be indexed and contain no hard clipped reads, i.e., reads whose CIGAR string contains "H".
 
 You should also prepare a configure file specifying the chromosomes to call, the paths to the resources required by the pipeline and the type of sequencing data (WES or WGS). One example `user.cfg.yaml` in `${PL_DIR}/example/test_WES` is as following: 
 
 ```
-  chrs: 20-22   
+  chrs: 1,2,10,20,X  
   targetBed:  ${PL_DIR}/WEScall/resources/SeqCap_EZ_Exome_v3_primary.bed
   1KG3_panel: ${PL_DIR}/WEScall/resources/data_v5a_filtered
   geneticMap: ${PL_DIR}/WEScall/resources/geneticMap_GRCh37
   seqType:    WES
 ``` 
-The first line specifies which chromosomes you want to call. Chromosomes that can be called are chromosomes 1 to 22 and X. WEScall can not call variants from chromosome Y. You can specify multiple chromosomes one by one, delimited by dash (for example 20-22). 
+The first line specifies which chromosomes you want to call. Chromosomes that can be called are chromosomes 1 to 22 and X. WEScall can not call variants from chromosome Y. You can specify multiple chromosomes one by one, delimited by comma (for example 20,22). 
 
 The second line specifies the target region bed file. It lists the targeted exonic regions with start and stop chromosome locations in GRCh37/hg19. Note, WEScall can also support the analysis of WGS samples, in which case the target region bed file is not necessary. 
 
@@ -84,7 +85,7 @@ The fifth line specifies the type of the sequence data. The allowable values are
 Now we can generate the master job file using the following command
 
 ```
-  cd ${WK_DIR} && python ${PL_DIR}/WEScall.py varCall -c user.cfg.yaml -i samples.index
+  cd ${WK_DIR} && python ${PL_DIR}/WEScall.py varCall -c user.cfg.yaml -s samples.index
 ``` 
 After running this command, the folder `${WK_DIR}/varCall` will be generated, storing the execute script `${WK_DIR}/varCall/run.sh` and configure file `${WK_DIR}/varCall/cluster.yaml`. Users can modify these files before running the pipeline if necessary. 
 
@@ -96,7 +97,7 @@ If any job is killed prematurely, you can resume the master job by using the com
 
 ### 6.2. Divide the large genome into short chromosomal segments 
 
-A good way to avoid the huge memory usage in downstream imputation procedure is to split the genome into smaller regions. Do this by 
+Before LD refinment step, we need to split the genome into smaller regions. Do this by 
 running the following command:
 ```
   cd ${WK_DIR} && python ${PL_DIR}/WEScall.py splitGenome -c user.cfg.yaml
