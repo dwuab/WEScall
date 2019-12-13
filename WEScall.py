@@ -162,7 +162,7 @@ def LDRefine(args):
 
 	with open("./phasing/conf.yaml", 'r') as fh:   
 		data = yaml.safe_load(fh)
-	CHRS = str(data['users']['chrs']).split('-')
+	CHRS = str(data['users']['chrs']).split(',')
 
 
 	chr_split=dict()
@@ -248,7 +248,7 @@ def QC(args):
 	PIPELINE_BASEDIR = os.path.dirname(sys.argv[0])
 
 	cmd="PL_DIR="+PIPELINE_BASEDIR+" && cd QC && snakemake -s ${PL_DIR}/lib/Snakefile.QC.WES "+\
-		"--configfile QC_params.yaml --printshellcmds all"
+		"--configfile QC_params.yaml --cores 20 --printshellcmds all"
 	logger.debug(cmd)
 	os.system(cmd)
 

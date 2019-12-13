@@ -61,7 +61,7 @@ Each line of `samples.index` is of the following format:
 ``` 
 **THERE CANNOT BE EMPTY LINES IN `samples.index` FILE!**
 The index file has to be **tab-delimited**. 
-BAM/CRAM files listed are assumed to be indexed and contain no hard clipped reads, i.e., reads whose CIGAR string contains "H".
+BAM/CRAM files listed are assumed to be indexed and **contain no hard clipped reads**, i.e., reads whose CIGAR string contains "H".
 
 You should also prepare a configure file specifying the chromosomes to call, the paths to the resources required by the pipeline and the type of sequencing data (WES or WGS). One example `user.cfg.yaml` in `${PL_DIR}/example/test_WES` is as following: 
 
@@ -91,7 +91,7 @@ After running this command, the folder `${WK_DIR}/varCall` will be generated, st
 
 You can submit the variant calling master job using
 ```
-  cd varCall & qsub run.sh >> ./logs/submission.log  
+  cd varCall && qsub run.sh >> ./logs/submission.log  
 ``` 
 If any job is killed prematurely, you can resume the master job by using the command again. You can check `${WK_DIR}/varCall/logs/WEScall_varCall.master.log` for progress or diagnose premature terminations of jobs. Once the log reports all jobs are done (message such as "4 of 4 steps (100%) done"), you can proceed to the next step.
 
@@ -104,8 +104,7 @@ running the following command:
 ``` 
 After running this command, there will generate the folder `${WK_DIR}/phasing` storing the script `${WK_DIR}/phasing/run.sh` and users can submit the genome splitting master job using
 ```
-  cd phasing
-  qsub run.sh >> ./logs/submission.log
+  cd phasing && qsub run.sh >> ./logs/submission.log
 ```
 
 ### 6.3. Genotype refinement through phasing
@@ -118,7 +117,7 @@ Before running the phasing procedure, you can modify parameters in the configure
 
 Finally, you can submit the variant phasing master job using
 ```
-  cd phasing & qsub run.sh >> ./logs/submission.log
+  cd phasing && qsub run.sh >> ./logs/submission.log
 ```
 When all above jobs are finished, the genotyping results are stored in `${WK_DIR}/phasing`. For example, users can see genotypes from chromosome 1 in `${WK_DIR}/phasing/1/1.Final.vcf.gz` 
 
@@ -157,5 +156,20 @@ Split the whole genome into smaller regions (default 1Mb):
 ${PL_DIR}/topMed/scripts/gcconfig.pm Line:19
 19  our $genotypeUnit = 1000000;
 ```
-## 7. Questions
-For further questions, pleast raise issues through github (recommended), or contact Jinzhuang Dou <jinzhuangdou198706@gmail.com> or Degang Wu <dwuab@alumni.ust.hk>.
+
+## 8. Frequently encountered problems
+
+### 8.1 Pipeline stops prematurely
+
+Symptoms: `qstat` shows the master job as finished, but in the master log you can't find statement `(100%) done`. 
+The first thing to do is to find out whether the pipeline has encountered any error in its execution. For example, you can run `grep error ${WK_DIR}/varCall/logs/*` in the log folder to see all mentions of errors. 
+See if the error messages come from a particular script or from Snakemake.
+See if the error messages clearly point out the underlying sources of errors and if yes try to address the errors.
+
+### 8.2 Network files system synchronization latency
+
+Occasionally, a job has finished, but it takes a long time for the outputs it generated to be synchronized to other computing nodes. 
+In this case, the master job will be informed by the cluster scheduler that the job has been finished but unable to detect the expected output files.
+
+## 9. Questions
+For further questions, please raise issues through github (recommended), or contact Jinzhuang Dou <jinzhuangdou198706@gmail.com> or Degang Wu <dwuab@alumni.ust.hk>.

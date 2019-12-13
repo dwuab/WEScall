@@ -23,7 +23,7 @@ if LIB_PATH not in sys.path:
 RESULT_OUTDIR = './out'
 
 # non-login bash
-shell.executable("/bin/bash")
+# shell.executable("/bin/bash")
 
 
 
@@ -122,14 +122,11 @@ rule phasingWithoutRef_parallel:
     threads:
         12
     run: 
-        if os.path.exists("{output}.OK"):
-           print("No need to run this step now...")
-        else:
-            shell("java -jar {params.javaOption} {APP}/beagle.27Jul16.86a.jar"
-              " gl={input}  impute=false modelscale=2  nthreads=12   gprobs=true"
-              " map={params.resourcePath}/plink.chr{params.mychr}.GRCh37.map"
-              " chrom={params.mychr}"
-              " niterations=0  out={params.prefix}"),
+        shell("java -jar {params.javaOption} {APP}/beagle.27Jul16.86a.jar"
+          " gl={input}  impute=false modelscale=2  nthreads=12   gprobs=true"
+          " map={params.resourcePath}/plink.chr{params.mychr}.GRCh37.map"
+          " chrom={params.mychr}"
+          " niterations=0  out={params.prefix}")
 
 
 
@@ -148,7 +145,6 @@ rule phasingWithRef:
         1
     run:
         vcf=orderVCF({input.vcf})
-        print(vcf)
         if len(input.vcf)==1:
             shell("cp {vcf} {params.mychr}/{params.mychr}.PhaseWithRef.vcf.gz")
         else:
@@ -163,23 +159,21 @@ rule phasingWithRef_parallel:
     input:
         '{chr}/chr{chr}.Split.{job}.vcf.gz'
     output:
-        '{chr}/chr{chr}.phasingWithRef.{job}.vcf.gz',
-        touch('{chr}/chr{chr}.phasingWithRef.{job}.vcf.gz.OK')
+        vcf='{chr}/chr{chr}.phasingWithRef.{job}.vcf.gz',
+        flag=touch('{chr}/chr{chr}.phasingWithRef.{job}.vcf.gz.OK'),
     params:
         geneticPath=config['users']['geneticMap'],
         refPanelPath=config['users']['1KG3_panel'],
         javaOption='-Xmx36g',
         prefix='{chr}/chr{chr}.phasingWithRef.{job}',
-        mychr='{chr}'
+        mychr='{chr}',
+        log="/tmp/chr{chr}.phasingWithRef.{job}.beagle.log"
     threads:
         24
     run: 
-        if os.path.exists("{output}.OK"):
-           print("No need to run this step now...")
-        else:
-            shell("java -jar {params.javaOption} {APP}/beagle.27Jul16.86a.jar"
-              " gl={input}  impute=false modelscale=2  nthreads=24   gprobs=true"
-              " map={params.geneticPath}/plink.chr{params.mychr}.GRCh37.map"
-              " chrom={params.mychr}"
-              " ref={params.refPanelPath}/ALL.chr{params.mychr}.phase3.20130502.SNP.indel.biallelic.mac5.vcf.gz"
-              " niterations=0  out={params.prefix}")
+        shell("java -jar {params.javaOption} {APP}/beagle.27Jul16.86a.jar"
+          " gl={input}  impute=false modelscale=2  nthreads=24   gprobs=true"
+          " map={params.geneticPath}/plink.chr{params.mychr}.GRCh37.map"
+          " chrom={params.mychr}"
+          " ref={params.refPanelPath}/ALL.chr{params.mychr}.phase3.20130502.SNP.indel.biallelic.mac5.vcf.gz"
+          " niterations=0  out={params.prefix} | tee {params.log} && if grep -q 'error' {params.log}; then exit 1; fi")

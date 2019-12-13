@@ -2,7 +2,10 @@
 
 import os
 
-CHRS = str(config['chrs']).split('-')
+CHRS = str(config['chrs']).split(',')
+
+wildcard_constraints:
+        chr="[1-9]|1[0-9]|2[0-2]|X"
 
 # step1: extract results *.Final.vcf.gz resulted from LD refinment
 rule step1:
@@ -48,10 +51,10 @@ rule step2:
 		shell("bcftools index -f {output.target_vcf}")
 		shell("bcftools index -f {output.off_target_vcf}")
 
-		shell("bcftools isec -C {input.target_vcf} {output.target_vcf} -Oz -p tmp/step2_target")
-		shell("bcftools isec -C {input.off_target_vcf} {output.off_target_vcf} -Oz -p tmp/step2_off_target")
-		shell("sed -e '1i\\ID\\tDR2\\tAF' <(bcftools query tmp/step2_target/0000.vcf.gz -f '%ID\t%INFO/DR2\t%INFO/AF\n') | bgzip -c > {output.target_excl_list}")
-		shell("sed -e '1i\\ID\\tDR2\\tAF' <(bcftools query tmp/step2_off_target/0000.vcf.gz -f '%ID\t%INFO/DR2\t%INFO/AF\n') | bgzip -c > {output.off_target_excl_list}")
+		shell("bcftools isec -C {input.target_vcf} {output.target_vcf} -Oz -p tmp/step2_target_chr{wildcards.chr}")
+		shell("bcftools isec -C {input.off_target_vcf} {output.off_target_vcf} -Oz -p tmp/step2_off_target_chr{wildcards.chr}")
+		shell("sed -e '1i\\ID\\tDR2\\tAF' <(bcftools query tmp/step2_target_chr{wildcards.chr}/0000.vcf.gz -f '%ID\t%INFO/DR2\t%INFO/AF\n') | bgzip -c > {output.target_excl_list}")
+		shell("sed -e '1i\\ID\\tDR2\\tAF' <(bcftools query tmp/step2_off_target_chr{wildcards.chr}/0000.vcf.gz -f '%ID\t%INFO/DR2\t%INFO/AF\n') | bgzip -c > {output.off_target_excl_list}")
 
 # step 3: filtering according to HWE thershold
 rule step3:
@@ -81,10 +84,10 @@ rule step3:
 		shell("bcftools index -f {output.target_vcf}")
 		shell("bcftools index -f {output.off_target_vcf}")
 
-		shell("bcftools isec -C {output.target_vcf_tmp} {output.target_vcf} -Oz -p tmp/step3_target")
-		shell("bcftools isec -C {output.off_target_vcf_tmp} {output.off_target_vcf} -Oz -p tmp/step3_off_target")
-		shell("sed -e '1i\\ID\\tHWE' <(bcftools query tmp/step3_target/0000.vcf.gz -f '%ID\t%INFO/HWE\n') | bgzip -c > {output.target_excl_list}")
-		shell("sed -e '1i\\ID\\tHWE' <(bcftools query tmp/step3_off_target/0000.vcf.gz -f '%ID\t%INFO/HWE\n') | bgzip -c > {output.off_target_excl_list}")
+		shell("bcftools isec -C {output.target_vcf_tmp} {output.target_vcf} -Oz -p tmp/step3_target_chr{wildcards.chr}")
+		shell("bcftools isec -C {output.off_target_vcf_tmp} {output.off_target_vcf} -Oz -p tmp/step3_off_target_chr{wildcards.chr}")
+		shell("sed -e '1i\\ID\\tHWE' <(bcftools query tmp/step3_target_chr{wildcards.chr}/0000.vcf.gz -f '%ID\t%INFO/HWE\n') | bgzip -c > {output.target_excl_list}")
+		shell("sed -e '1i\\ID\\tHWE' <(bcftools query tmp/step3_off_target_chr{wildcards.chr}/0000.vcf.gz -f '%ID\t%INFO/HWE\n') | bgzip -c > {output.off_target_excl_list}")
 
 # step 4: filtering according to depth
 rule step4:
@@ -120,10 +123,10 @@ rule step4:
 		shell("bcftools index -f {output.off_target_vcf}")
 		shell("bcftools index -f {output.target_vcf_tmp}")
 		shell("bcftools index -f {output.off_target_vcf_tmp}")
-		shell("bcftools isec -C {output.target_vcf_tmp} {output.target_vcf} -Oz -p tmp/step4_target")
-		shell("bcftools isec -C {output.off_target_vcf_tmp} {output.off_target_vcf} -Oz -p tmp/step4_off_target")
-		shell("sed -e '1i\\ID\\tAVGDP' <(bcftools query tmp/step4_target/0000.vcf.gz -f '%ID\t%INFO/AVGDP\n') | bgzip -c > {output.target_excl_list}")
-		shell("sed -e '1i\\ID\\tAVGDP' <(bcftools query tmp/step4_off_target/0000.vcf.gz -f '%ID\t%INFO/AVGDP\n') | bgzip -c > {output.off_target_excl_list}")
+		shell("bcftools isec -C {output.target_vcf_tmp} {output.target_vcf} -Oz -p tmp/step4_target_chr{wildcards.chr}")
+		shell("bcftools isec -C {output.off_target_vcf_tmp} {output.off_target_vcf} -Oz -p tmp/step4_off_target_chr{wildcards.chr}")
+		shell("sed -e '1i\\ID\\tAVGDP' <(bcftools query tmp/step4_target_chr{wildcards.chr}/0000.vcf.gz -f '%ID\t%INFO/AVGDP\n') | bgzip -c > {output.target_excl_list}")
+		shell("sed -e '1i\\ID\\tAVGDP' <(bcftools query tmp/step4_off_target_chr{wildcards.chr}/0000.vcf.gz -f '%ID\t%INFO/AVGDP\n') | bgzip -c > {output.off_target_excl_list}")
 
 
 # filtering SNPs according to their positions. If SNPs are within X bp of any indels
@@ -160,10 +163,10 @@ rule step5:
 
 		shell("bcftools index -f {output.target_vcf}")
 		shell("bcftools index -f {output.off_target_vcf}")
-		shell("bcftools isec -C {input.target_vcf} {output.target_vcf} -Oz -p tmp/step5_target")
-		shell("bcftools isec -C {input.off_target_vcf} {output.off_target_vcf} -Oz -p tmp/step5_off_target")
-		shell("sed -e '1i\\ID' <(bcftools query tmp/step5_target/0000.vcf.gz -f '%ID\n') | bgzip -c > {output.target_excl_list}")
-		shell("sed -e '1i\\ID' <(bcftools query tmp/step5_off_target/0000.vcf.gz -f '%ID\n') | bgzip -c > {output.off_target_excl_list}")
+		shell("bcftools isec -C {input.target_vcf} {output.target_vcf} -Oz -p tmp/step5_target_chr{wildcards.chr}")
+		shell("bcftools isec -C {input.off_target_vcf} {output.off_target_vcf} -Oz -p tmp/step5_off_target_chr{wildcards.chr}")
+		shell("sed -e '1i\\ID' <(bcftools query tmp/step5_target_chr{wildcards.chr}/0000.vcf.gz -f '%ID\n') | bgzip -c > {output.target_excl_list}")
+		shell("sed -e '1i\\ID' <(bcftools query tmp/step5_off_target_chr{wildcards.chr}/0000.vcf.gz -f '%ID\n') | bgzip -c > {output.off_target_excl_list}")
 
 
 # filtering according to the fractions of samples in a particular site where its maximum GP is smaller than a threshold value
@@ -198,10 +201,10 @@ rule step6:
 
 		shell("bcftools index -f {output.target_vcf}")
 		shell("bcftools index -f {output.off_target_vcf}")
-		shell("bcftools isec -C {input.target_vcf} {output.target_vcf} -Oz -p tmp/step6_target")
-		shell("bcftools isec -C {input.off_target_vcf} {output.off_target_vcf} -Oz -p tmp/step6_off_target")
-		shell("sed -e '1i\\ID' <(bcftools query tmp/step6_target/0000.vcf.gz -f '%ID\n') | bgzip -c > {output.target_excl_list}")
-		shell("sed -e '1i\\ID' <(bcftools query tmp/step6_off_target/0000.vcf.gz -f '%ID\n') | bgzip -c > {output.off_target_excl_list}")
+		shell("bcftools isec -C {input.target_vcf} {output.target_vcf} -Oz -p tmp/step6_target_chr{wildcards.chr}")
+		shell("bcftools isec -C {input.off_target_vcf} {output.off_target_vcf} -Oz -p tmp/step6_off_target_chr{wildcards.chr}")
+		shell("sed -e '1i\\ID' <(bcftools query tmp/step6_target_chr{wildcards.chr}/0000.vcf.gz -f '%ID\n') | bgzip -c > {output.target_excl_list}")
+		shell("sed -e '1i\\ID' <(bcftools query tmp/step6_off_target_chr{wildcards.chr}/0000.vcf.gz -f '%ID\n') | bgzip -c > {output.off_target_excl_list}")
 
 
 # merge target and off-target region

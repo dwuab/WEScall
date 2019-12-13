@@ -72,8 +72,7 @@ if [ "$PBS_ENVIRONMENT" == "PBS_BATCH" ]; then
         clustercmd="$clustercmd -q $DEFAULT_SLAVE_Q"
     fi
     if [ "$DRMAA_OFF" -eq 1 ]; then
-        #clustercmd="--cluster \"qsub $clustercmd\""
-	clustercmd="--cluster-sync \"qsub $clustercmd\""
+        clustercmd="--cluster \"qsub $clustercmd\""
     else
         clustercmd="--drmaa \" $clustercmd -w n\""
     fi

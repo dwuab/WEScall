@@ -22,8 +22,8 @@ our $discover_thread_perBatch = 12;
 our $jointcall_thread_perBatch = 12;
 our $milk_thread_perBatch = 18;
 our $discoverUnit = 200000000000;
-our $genotypeUnit = 1000000;
-our $time_latency_job = 10;
+our $genotypeUnit = 10000000;
+our $time_latency_job = 600;
 
 
 
