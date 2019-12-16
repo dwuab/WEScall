@@ -11,7 +11,7 @@ wildcard_constraints:
 rule step1:
 	input:
 		target_bed=config['targetBed'],
-		final_vcf="../phasing/{chr}/{chr}.Final.vcf.gz"
+		final_vcf="../LDRefine/{chr}/{chr}.Final.vcf.gz"
 	output:
 		target_vcf="QC_WIP/{chr}.target.step1.vcf.gz",
 		off_target_vcf="QC_WIP/{chr}.off_target.step1.vcf.gz",
@@ -95,7 +95,7 @@ rule step4:
 		flag="flags/{chr}.step3.OK",
 		target_vcf="QC_WIP/{chr}.target.step3.vcf.gz",
 		off_target_vcf="QC_WIP/{chr}.off_target.step3.vcf.gz",
-		filter_vcf="../phasing/{chr}/{chr}.Filter.vcf.gz",
+		filter_vcf="../varCall/{chr}/{chr}.Filter.vcf.gz",
 		target_bed=config['targetBed']
 	output:
 		flag=touch("flags/{chr}.step4.OK"),

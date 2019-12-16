@@ -64,44 +64,7 @@ rule all:
         expand('{chr}/beagleSplit.{chr}.OK', chr=CHRS)
 
 
-rule bcfMerge:
-    """ Merge the bcf files into the vcf file by chromosome, multiple files into one 
-    """   
-    input:
-        lambda wildcards: expand('{prefix}', prefix=config['samples'][wildcards.chr])
-    output:
-        '{chr}/bcfMerge.{chr}.OK',
-        '{chr}/{chr}.all.vcf.gz'
-    log:
-        '{chr}/bcfMerge.{chr}.log'
-    params:
-        mychr='{chr}'
-    threads:
-        1
-    run:
-        shell("mkdir -p {params.mychr}"),
-        vcf=orderVCF({input}),
-        print({vcf}),
-        shell("{APP}/bcftools concat {vcf}  -o  {params.mychr}/{params.mychr}.all.vcf.gz  -O z >& {log}"),
-        shell("touch {params.mychr}/bcfMerge.{params.mychr}.OK")
 
-rule Filter:
-    input:
-       vcf='{chr}/bcfMerge.{chr}.OK',
-       site=config['sites'][20]    ######## Fix me
-    output:
-       vcf='{chr}/{chr}.Filter.vcf.gz',
-       log='{chr}/{chr}.Filter.OK'
-    params:
-       resourcePath=config['users']['1KG3_panel'],       
-       mychr='{chr}'
-    threads:
-       1  
-    run:
-       shell("perl {SCRIPT}/QC.pl --invcf {params.mychr}/{params.mychr}.all.vcf.gz --removeLst {input.site}" 
-         "  --keepLst {params.resourcePath}/ALL.chr{params.mychr}.phase3.20130502.SNP.biallelic.MAF0.01.sites.vcf.gz" 
-         "  --out {output.vcf}  --type WES"),
-       shell("touch {params.mychr}/{params.mychr}.Filter.OK")
 
 
 rule beagleSplit:

@@ -20,7 +20,7 @@ Details of this pipeline can be found in our paper:
 
 ## 3. Dependencies
 * python (version >= 3.5)
-* [Snakemake](https://snakemake.readthedocs.io/en/stable/) (version >= 3.9.1)
+* [Snakemake](https://snakemake.readthedocs.io/en/stable/) (version >= 5.4)
 * java (version >= 1.8.0)
 * perl (version >= v5.10)
 * bcftools (version >= 1.9)
@@ -41,15 +41,19 @@ This command will create a folder named "WEScall".
 
 ### 5.1 Setting up for your cluster
 
-As there are no reliable ways to automatically detect the type of job scheduling systems (SGE, PBS, etc.), you have to do some set-up before running the pipeline. You should check `${PL_DIR}/lib/run.template.sh` and `${PL_DIR}/topMed/scripts/gcconfig.pm` and modify them if necessary. The default settings are tested on a Torque (An implementation of PBS) cluster. Earlier versions of this pipeline have been tested on a SGE cluster and a PBS Pro cluster. Template files for SGE and PBS Pro clusters are provided for reference under `${PL_DIR}/lib/`. Settings for SGE and PBS Pro clusters are also provided in the comments in `${PL_DIR}/topMed/scripts/gcconfig.pm`.
+As there are no reliable ways to automatically detect the type of job scheduling systems (SGE, PBS, etc.), you have to do some set-up before running the pipeline. 
+You should check `${PL_DIR}/cfg/run.template.sh` and `${PL_DIR}/pipelines/varCall/scripts/gcconfig.pm` and modify them if necessary. The default settings are tested on a Torque (An implementation of PBS) cluster. 
+Earlier versions of this pipeline have been tested on a SGE cluster and a PBS Pro cluster. 
+Template files for SGE and PBS Pro clusters are provided for reference under `${PL_DIR}/cfg/`. 
+Settings for SGE and PBS Pro clusters are also provided in the comments in `${PL_DIR}/pipelines/varCall/scripts/gcconfig.pm`.
 
 ### 5.2 Generating 1KG reference panel
 
-**Please run** `create_g1k_ref.sh` to generate the files needed from official 1KGP3 release .vcf files.
+**Please run** `${PL_DIR}/scripts/create_g1k_ref.sh` to generate the files needed from official 1KGP3 release .vcf files.
 
 ### 5.3 Setting up links to resource files
 
-**Please run** `check_resources.sh` to check what resources files you lack and ways to download it.
+**Please run** `${PL_DIR}/scripts/check_resources.sh` to check what resources files you lack and ways to download it.
 
 ## 6. Running the pipeline
 
@@ -85,45 +89,36 @@ The fifth line specifies the type of the sequence data. The allowable values are
 Now we can generate the master job file using the following command
 
 ```
-  cd ${WK_DIR} && python ${PL_DIR}/WEScall.py varCall -c user.cfg.yaml -s samples.index
+cd ${WK_DIR} && python ${PL_DIR}/WEScall.py varCall -c user.cfg.yaml -s samples.index
 ``` 
 After running this command, the folder `${WK_DIR}/varCall` will be generated, storing the execute script `${WK_DIR}/varCall/run.sh` and configure file `${WK_DIR}/varCall/cluster.yaml`. Users can modify these files before running the pipeline if necessary. 
 
 You can submit the variant calling master job using
 ```
-  cd varCall && qsub run.sh >> ./logs/submission.log  
+cd varCall && qsub run.sh >> ./logs/submission.log  
 ``` 
-If any job is killed prematurely, you can resume the master job by using the command again. You can check `${WK_DIR}/varCall/logs/WEScall_varCall.master.log` for progress or diagnose premature terminations of jobs. Once the log reports all jobs are done (message such as "4 of 4 steps (100%) done"), you can proceed to the next step.
+If any job is killed prematurely, you can resume the master job by using the command again. You can check `${WK_DIR}/varCall/logs/WEScall_varCall.master.log` for progress or diagnose premature terminations of jobs. 
+If the running is successful, the vcf files after SVM filtering are placed in, e.g.,  `${WK_DIR}/varCall/1/1.Filter.vcf.gz`
 
-### 6.2. Divide the large genome into short chromosomal segments 
+Once the log reports all jobs are done (message such as "4 of 4 steps (100%) done"), you can proceed to the next step.
 
-Before LD refinment step, we need to split the genome into smaller regions. Do this by 
-running the following command:
-```
-  cd ${WK_DIR} && python ${PL_DIR}/WEScall.py splitGenome -c user.cfg.yaml
-``` 
-After running this command, there will generate the folder `${WK_DIR}/phasing` storing the script `${WK_DIR}/phasing/run.sh` and users can submit the genome splitting master job using
-```
-  cd phasing && qsub run.sh >> ./logs/submission.log
-```
+### 6.2. LD-based genotype refinement through phasing
 
-### 6.3. Genotype refinement through phasing
-
-This step performs genotype refinement through phasing by leveraging linkage disequilibrium (LD) information from study samples of external reference panel. Run the following command to generate the job file: 
+This step performs genotype refinement through phasing by leveraging linkage disequilibrium (LD) information from study samples of external reference panel.
+After step 6.1 has done, run the following command to generate the job file: 
 ```
-  cd ${WK_DIR} && python ${PL_DIR}/WEScall.py LDRefine -c user.cfg.yaml
+cd ${WK_DIR} && python ${PL_DIR}/WEScall.py LDRefine -c user.cfg.yaml
 ```
-Before running the phasing procedure, you can modify parameters in the configure file `${WK_DIR}/varCall/cluster.yaml` if necessary. If you want to change the number of segments being phased at one time, please modify the option `N_ARG="--jobs 200"` in line 81 of file `${WK_DIR}/phasing/run.sh`. 
 
 Finally, you can submit the variant phasing master job using
 ```
-  cd phasing && qsub run.sh >> ./logs/submission.log
+cd phasing && qsub run.sh >> ./logs/submission.log
 ```
-When all above jobs are finished, the genotyping results are stored in `${WK_DIR}/phasing`. For example, users can see genotypes from chromosome 1 in `${WK_DIR}/phasing/1/1.Final.vcf.gz` 
+When all above jobs are finished, the genotyping results are stored in `${WK_DIR}/LDRefine`. For example, users can see genotypes from chromosome 1 in `${WK_DIR}/LDRefine/1/1.Final.vcf.gz` 
 
-### 6.4. Variant QC
+### 6.3. Variant QC
 
-If steps 6.1 through 6.3 have been done successfully, you can perform a series QC procedures described in our paper. Run the following command:
+If steps 6.1 and 6.2 have been done successfully, you can perform a series QC procedures described in our paper. Run the following command:
 ```
   cd ${WK_DIR} && python ${PL_DIR}/WEScall.py QC -c user.cfg.yaml
 ```
@@ -170,6 +165,14 @@ See if the error messages clearly point out the underlying sources of errors and
 
 Occasionally, a job has finished, but it takes a long time for the outputs it generated to be synchronized to other computing nodes. 
 In this case, the master job will be informed by the cluster scheduler that the job has been finished but unable to detect the expected output files.
+For example, if you see the following in the log:
+```
+Waiting at most 600 seconds for missing files.
+MissingOutputException in line 191 of /opt/software/WEScall/pipelines/LDRefine/Snakefile.beagle.WES:
+Missing files after 600 seconds:
+20_split/20
+This might be due to filesystem latency.
+```
 
 ## 9. Questions
 For further questions, please raise issues through github (recommended), or contact Jinzhuang Dou <jinzhuangdou198706@gmail.com> or Degang Wu <dwuab@alumni.ust.hk>.

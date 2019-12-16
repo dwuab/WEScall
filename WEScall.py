@@ -13,7 +13,7 @@ import glob
 import re
 
 LIB_PATH = os.path.abspath(
-	os.path.join(os.path.dirname(os.path.realpath(__file__)), "lib"))
+	os.path.join(os.path.dirname(os.path.realpath(__file__)), "pipelines/lib"))
 
 if LIB_PATH not in sys.path:
 	sys.path.insert(0, LIB_PATH)
@@ -43,17 +43,17 @@ def get_seq_type_from_user_cfg(fn_user_cfg):
 def varCall(args):
 	logger.debug("Varcall: "+str(args))
 
-	PIPELINE_BASEDIR = os.path.join(os.path.dirname(sys.argv[0]),"varCall")
+	PIPELINE_BASEDIR = os.path.dirname(sys.argv[0])
 	CFG_DIR = os.path.join(PIPELINE_BASEDIR, "cfg")
 
 	pipeline_handler = PipelineHandler(
 		"WEScall_varCall",
 		PIPELINE_BASEDIR,
-		Snakefile="Snakefile."+get_seq_type_from_user_cfg(args.userCfg),
+		Snakefile="pipelines/varCall/Snakefile."+get_seq_type_from_user_cfg(args.userCfg),
 		outdir="./varCall",
 		user_data="",
 		user_cfgfile=args.userCfg,
-		cluster_cfgfile=get_cluster_cfgfile(CFG_DIR)
+		cluster_cfgfile=CFG_DIR+"/cluster.varCall.yaml"
 		)
 
 
@@ -151,53 +151,44 @@ def splitGenome(args):
 	pipeline_handler.submit(no_run=True)
 
 def LDRefine(args):
-	logger.debug("phase: "+str(args))
+	logger.debug("LDRefine: "+str(args))
 
-	PIPELINE_BASEDIR = os.path.join(os.path.dirname(sys.argv[0]),"phasing")
+	assert os.path.exists("varCall"), "Cannot detect the directory of varaiant detection.\nWEScall varCall has to be run before LD-based genotype refinement."
+
+	assert args.num_record_per_file > 0, "Number of records per file has to be larger than 1!"
+
+	assert args.num_overlap_record >= 0, "Number of overlapping records has to be larger than 1!"
+
+	assert args.num_record_per_file>args.num_overlap_record, "Number of records per file has to be larger than the number of overlapping records."
+
+	if not os.path.exists("LDRefine"):
+		os.mkdir("LDRefine")
+
+	LDRefine_cfg=dict()
+	LDRefine_cfg["num_record_per_file"]=args.num_record_per_file
+	LDRefine_cfg["num_overlap_record"]=args.num_overlap_record
+
+	PIPELINE_BASEDIR = os.path.join(os.path.dirname(sys.argv[0]))
 	CFG_DIR = os.path.join(PIPELINE_BASEDIR, "cfg")
 
-	if not os.path.exists("./phasing/conf.yaml"):
-		logger.fatal("Input file %s does not exist", "./phasing/conf.yaml")
-		sys.exit(1)
+	path_cluster_cfg=os.path.join(PIPELINE_BASEDIR,"cfg","cluster.LDRefine.yaml")
 
-	with open("./phasing/conf.yaml", 'r') as fh:   
-		data = yaml.safe_load(fh)
-	CHRS = str(data['users']['chrs']).split(',')
-
-
-	chr_split=dict()
-	# Fix it to use the abs path.
-	# detect the finished chromosome according to *.OK. 
-	for chrFlag in CHRS:  
-		for fileName in glob.glob(os.path.join("./phasing/",chrFlag,'*.Split.*.vcf.gz')):  
-
-			chr_split.setdefault(chrFlag, []).append(re.findall(r'\d+', fileName)[-1])
-
-	with open("./phasing/splitGenome.yaml", 'w') as fh:
-		yaml.dump(dict(chr_split=chr_split), fh, default_flow_style=False)
-
-	sample_cfg = "./phasing/splitGenome.yaml";
-	
-	if sample_cfg:
-		if not os.path.exists(sample_cfg):
-			logger.fatal("Config file %s does not exist", sample_cfg)
-			sys.exit(1)
-
-	with open(sample_cfg) as fh_cfg:
-		yaml_data = yaml.safe_load(fh_cfg)
-		chr_split= yaml_data['chr_split']
+	# has to merge cluster
+	with open(path_cluster_cfg, 'r') as fh:
+		cluster_cfg = yaml.safe_load(fh)
 
 	# turn arguments into user_data that gets merged into pipeline config
 	#
 	# generic data first
 	user_data = dict()
-	user_data['chr_split'] = chr_split
+	user_data['cluster'] = cluster_cfg
+	user_data['LDRefine'] = LDRefine_cfg
 
 	pipeline_handler = PipelineHandler(
 		"WEScall_LDRefine", PIPELINE_BASEDIR, 
-		"phasing",user_data,
-		Snakefile="Snakefile.beagle."+get_seq_type_from_user_cfg(args.userCfg),
-		cluster_cfgfile=get_cluster_cfgfile(CFG_DIR),
+		"LDRefine",user_data,
+		Snakefile="pipelines/LDRefine/Snakefile.beagle."+get_seq_type_from_user_cfg(args.userCfg),
+		cluster_cfgfile=path_cluster_cfg,
 		user_cfgfile=args.userCfg)
 
 	pipeline_handler.setup_env()
@@ -247,7 +238,7 @@ def QC(args):
 
 	PIPELINE_BASEDIR = os.path.dirname(sys.argv[0])
 
-	cmd="PL_DIR="+PIPELINE_BASEDIR+" && cd QC && snakemake -s ${PL_DIR}/lib/Snakefile.QC.WES "+\
+	cmd="PL_DIR="+PIPELINE_BASEDIR+" && cd QC && snakemake -s ${PL_DIR}/pipelines/QC/Snakefile.QC.WES "+\
 		"--configfile QC_params.yaml --cores 20 --printshellcmds all"
 	logger.debug(cmd)
 	os.system(cmd)
@@ -255,11 +246,10 @@ def QC(args):
 
 def main():
 	parser = argparse.ArgumentParser(
-		description="""
-		A whole exome sequence genotype calling pipeline that utilizes off-target reads)
+		description="""A whole exome sequence genotype calling pipeline that utilizes off-target reads)
 		""",
 		epilog=
-		"""Typical workflow: varCall => split => phase => QC\nCitation: Dou J, Wu D, ... , Wang C. Joint analysis of target and off-target data improves whole-exome sequencing studies (in preparation)
+		"""Typical workflow: varCall => LDRefine => QC\nCitation: Dou J, Wu D, ... , Wang C. Joint analysis of target and off-target data improves whole-exome sequencing studies (in preparation)
 		""",
 		formatter_class=argparse.RawTextHelpFormatter)
 
@@ -278,13 +268,16 @@ def main():
 								help="The list of study samples, paths to the corresponding BAM/CRAM files and contamination rates")
 	parser_varCall.set_defaults(func=varCall)
 	
-	parser_split = subparsers.add_parser('splitGenome', parents=[common_parser],
-		help='Split genome in preparation for genotype refinement')
-	parser_split.set_defaults(func=splitGenome)
-	
-	parser_phase = subparsers.add_parser('LDRefine', parents=[common_parser],
-		help='Refine genotype calls by LD information')
-	parser_phase.set_defaults(func=LDRefine)
+	parser_LDRefine = subparsers.add_parser('LDRefine', parents=[common_parser],
+		help='Perform LD-based genotype refinement',
+		formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+	parser_LDRefine.add_argument("--num-record-per-file",type=int,default=10000,
+		metavar="number-of-vcf-records-per-file",
+		help="Number of VCF records per split file. Range: integer>0.")
+	parser_LDRefine.add_argument("--num-overlap-record",type=int,default=1000,
+		metavar="number-of-overlapping-vcf-records",
+		help="Number of overlapping VCF records between two neighboring split vcf files. Range: integer>=0.")
+	parser_LDRefine.set_defaults(func=LDRefine)
 	
 	parser_QC = subparsers.add_parser('QC', parents=[common_parser],
 		help='final quality control',

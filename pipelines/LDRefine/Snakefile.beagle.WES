@@ -1,0 +1,231 @@
+## library
+## library
+import os
+import subprocess
+import shutil
+import glob
+import re
+
+# third party imports
+#
+from snakemake.utils import report
+
+# project specific imports
+#
+LIB_PATH = os.path.abspath(
+	os.path.join(os.path.dirname(os.path.realpath(workflow.snakefile)),"..", "lib"))
+
+if LIB_PATH not in sys.path:
+	sys.path.insert(0, LIB_PATH)
+
+# FIX ME
+
+RESULT_OUTDIR = './out'
+
+# non-login bash
+# shell.executable("/bin/bash")
+
+
+
+
+
+
+def atoi(text):
+	return int(text) if text.isdigit() else text
+
+def natural_keys(text):
+	"""
+	for example, if the base file name is chr20.Split.2.vcf.gz,
+	its natural key is 2.
+	"""
+	return [atoi(re.split('\.', os.path.basename(text))[2])]
+
+
+def orderVCF(para):
+	item=list(para.pop())
+	item.sort(key=natural_keys)
+	return ' '.join(item)
+
+
+# unconditionally convert CHRS to string to avoid config['users']['chrs'] being integer
+CHRS = str(config['users']['chrs']).split(',')
+dir_snakefile = os.path.dirname(os.path.realpath(workflow.snakefile)) 
+APP = os.path.join(dir_snakefile, "../../apps")
+SCRIPT = os.path.join(dir_snakefile, "../lib")
+
+
+def get_phasingWithRef_vcf_list(wildcards):
+	checkpoint_output=checkpoints.beagleSplit.get(**wildcards).output.vcf
+
+	return expand("{chr}/chr{chr}.phasingWithRef.{job}.vcf.gz",
+		chr=wildcards.chr,
+		job=glob_wildcards(os.path.join(checkpoint_output,
+			"chr{chr}.Split.{job}.vcf.gz")).job)
+
+def get_phasingWithRef_vcf_OK_list(wildcards):
+	checkpoint_output=checkpoints.beagleSplit.get(**wildcards).output.vcf
+
+	return expand("{chr}/chr{chr}.phasingWithRef.{job}.vcf.gz.OK",
+		chr=wildcards.chr,
+		job=glob_wildcards(os.path.join(checkpoint_output,
+			"chr{chr}.Split.{job}.vcf.gz")).job)
+
+def get_phasingWithoutRef_vcf_list(wildcards):
+	checkpoint_output=checkpoints.beagleSplit.get(**wildcards).output.vcf
+
+	return expand("{chr}/chr{chr}.phasingNoRef.{job}.vcf.gz",
+		chr=wildcards.chr,
+		job=glob_wildcards(os.path.join(checkpoint_output,
+			"chr{chr}.Split.{job}.vcf.gz")).job)
+
+def get_phasingWithoutRef_vcf_OK_list(wildcards):
+	checkpoint_output=checkpoints.beagleSplit.get(**wildcards).output.vcf
+
+	return expand("{chr}/chr{chr}.phasingNoRef.{job}.vcf.gz.OK",
+		chr=wildcards.chr,
+		job=glob_wildcards(os.path.join(checkpoint_output,
+			"chr{chr}.Split.{job}.vcf.gz")).job)
+
+wildcard_constraints:
+	chr="[1-9]|1[0-9]|2[0-2]|X"
+
+rule all:
+	input:
+		expand('{chr}/{chr}.Final.OK', chr=CHRS)
+
+
+rule merge:
+	input:
+		'{chr}/{chr}.PhaseNoRef.OK',
+		'{chr}/{chr}.PhaseWithRef.OK'
+	output:
+		'{chr}/{chr}.Final.OK'
+	params:
+		myDir='{chr}/{chr}',
+		bedFile=config['users']['targetBed']
+	threads:
+		1
+	run:
+		shell("{APP}/vcftools --gzvcf {params.myDir}.PhaseNoRef.vcf.gz --bed {params.bedFile} --stdout --recode --recode-INFO-all | bgzip -c > {params.myDir}.PhaseNoRef.target.vcf.gz"),
+		shell("{APP}/vcftools --gzvcf {params.myDir}.PhaseWithRef.vcf.gz --exclude-bed {params.bedFile} --stdout --recode --recode-INFO-all | bgzip -c > {params.myDir}.PhaseWithRef.offtarget.vcf.gz"),
+		shell("{APP}/vcf-concat {params.myDir}.PhaseNoRef.target.vcf.gz {params.myDir}.PhaseWithRef.offtarget.vcf.gz |  bgzip -c > {params.myDir}.tmp.vcf.gz"),
+		shell("{APP}/vcf-sort {params.myDir}.tmp.vcf.gz  |  bgzip -c > {params.myDir}.Final.vcf.gz"),
+		shell("rm -rf {params.myDir}.tmp.vcf.gz  {params.myDir}.PhaseNoRef.target.vcf.gz   {params.myDir}.PhaseWithRef.offtarget.vcf.gz")
+		shell("touch  {params.myDir}.Final.OK")
+
+
+rule phasingWithoutRef_merge:
+	""" phasing without reference using beagle 
+	"""  
+	input:
+		vcf=get_phasingWithoutRef_vcf_list, 
+		OK=get_phasingWithoutRef_vcf_OK_list,
+		flag=expand('{chr}/beagleSplit.{chr}.OK',chr=CHRS)
+	output:
+		touch('{chr}/{chr}.PhaseNoRef.OK')
+	params:
+		javaOption='-Xmx'+config["cluster"]["phasingWithoutRef_merge"]["mem"]
+	threads:
+		1
+	run:
+		vcf=orderVCF({input.vcf})
+		print(vcf)
+		if len(input.vcf)==1:
+			shell("cp {vcf} {wildcards.chr}/{wildcards.chr}.PhaseNoRef.vcf.gz")
+		else:
+			shell("java -jar {params.javaOption} {APP}/mergevcf.jar {wildcards.chr} {vcf} | bgzip -c > {wildcards.chr}/{wildcards.chr}.PhaseNoRef.vcf.gz")
+
+
+rule phasingWithoutRef_parallel:
+	""" phasing without reference using beagle for each region
+	"""  
+	input:
+		'{chr}_split/chr{chr}.Split.{ID}.vcf.gz'
+	output:
+		'{chr}/chr{chr}.phasingNoRef.{ID}.vcf.gz',
+		touch('{chr}/chr{chr}.phasingNoRef.{ID}.vcf.gz.OK')
+	params:
+		resourcePath=config['users']['geneticMap'],
+		javaOption='-Xmx'+config["cluster"]["phasingWithoutRef_parallel"]["mem"],
+		prefix='{chr}/chr{chr}.phasingNoRef.{ID}',
+	threads:
+		12
+	run: 
+		shell("java -jar {params.javaOption} {APP}/beagle.27Jul16.86a.jar "
+		  "gl={input} impute=false modelscale=2 nthreads={threads} gprobs=true "
+		  "map={params.resourcePath}/plink.chr{wildcards.chr}.GRCh37.map "
+		  "chrom={wildcards.chr} "
+		  "niterations=0 out={params.prefix}")
+
+
+rule phasingWithRef_merge:
+	""" phasing  reference using beagle 
+	"""  
+	input:
+		vcf=get_phasingWithRef_vcf_list, 
+		OK=get_phasingWithRef_vcf_OK_list,
+		flag=expand('{chr}/beagleSplit.{chr}.OK',chr=CHRS)
+	output:
+		touch('{chr}/{chr}.PhaseWithRef.OK')
+	params:
+		javaOption='-Xmx'+config["cluster"]["phasingWithRef_merge"]["mem"]
+	threads:
+		1
+	run:
+		vcf=orderVCF({input.vcf})
+		print(vcf)
+		if len(input.vcf)==1:
+			shell("cp {vcf} {wildcards.chr}/{wildcards.chr}.PhaseWithRef.vcf.gz")
+		else:
+			shell("java -jar {params.javaOption} {APP}/mergevcf.jar {wildcards.chr} {vcf} | bgzip -c > {wildcards.chr}/{wildcards.chr}.PhaseWithRef.vcf.gz")
+
+
+rule phasingWithRef_parallel:
+	""" phasing using beagle for each sub-region
+	beagle.27Jul16.86a.jar does not exit with error even if its log suggests
+	errors have been encountered. I have to scan through the log file for errors. 
+	"""  
+	input:
+		vcf='{chr}_split/chr{chr}.Split.{job}.vcf.gz'
+	output:
+		vcf='{chr}/chr{chr}.phasingWithRef.{job}.vcf.gz',
+		flag=touch('{chr}/chr{chr}.phasingWithRef.{job}.vcf.gz.OK'),
+	params:
+		geneticPath=config['users']['geneticMap'],
+		refPanelPath=config['users']['1KG3_panel'],
+		javaOption='-Xmx'+config["cluster"]["phasingWithRef_parallel"]["mem"],
+		prefix='{chr}/chr{chr}.phasingWithRef.{job}',
+		log="/tmp/chr{chr}.phasingWithRef.{job}.beagle.log"
+	threads:
+		24
+	run: 
+		shell("java -jar {params.javaOption} {APP}/beagle.27Jul16.86a.jar "
+		  "gl={input.vcf} impute=false modelscale=2 nthreads={threads} gprobs=true "
+		  "map={params.geneticPath}/plink.chr{wildcards.chr}.GRCh37.map "
+		  "chrom={wildcards.chr} "
+		  "ref={params.refPanelPath}/ALL.chr{wildcards.chr}.phase3.20130502.SNP.indel.biallelic.mac5.vcf.gz "
+		  "niterations=0  out={params.prefix} | tee {params.log} && if grep -q 'error' {params.log}; then exit 1; fi")
+
+
+checkpoint beagleSplit:
+	""" Split the vcf files into different chunks 
+	"""
+	input:
+		vcf='../varCall/{chr}/{chr}.Filter.vcf.gz',
+	output:
+		flag=touch('{chr}/beagleSplit.{chr}.OK'),
+		vcf=directory("{chr}_split")
+	log:
+		'{chr}_split/beagleSplit.{chr}.log'
+	params:
+		record=config["LDRefine"]["num_record_per_file"],
+		overlap=config["LDRefine"]["num_overlap_record"],
+		prefix= 'chr{chr}.Split',
+		javaOption='-Xmx'+config["cluster"]["beagleSplit"]["mem"]
+	threads:
+		1
+	run:
+		shell("zcat {input.vcf} | "
+			"java -jar {params.javaOption} {APP}/splitvcf.jar "
+			"{wildcards.chr} {params.record} {params.overlap} "
+			"{wildcards.chr}_split/{params.prefix} >& {log}"),

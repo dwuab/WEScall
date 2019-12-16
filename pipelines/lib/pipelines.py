@@ -23,24 +23,12 @@ from pathlib import Path
 #
 import yaml
 
-#--- project specific imports
-#
-#from services import SMTP_SERVER
-#from services import rest_services
-
-
-
-
 # only dump() and following do not automatically create aliases
 yaml.Dumper.ignore_aliases = lambda *args: True
 
 
 # global logger
 logger = logging.getLogger(__name__)
-# handler = logging.StreamHandler()
-# handler.setFormatter(logging.Formatter(
-#     '[{asctime}] {levelname:8s} {filename} {message}', style='{'))
-# logger.addHandler(handler)
 
 # dir relative to Snakefile where configs are to be found
 CFG_DIR = "cfg"
@@ -157,7 +145,7 @@ class PipelineHandler(object):
 
         # run template
         self.run_template = os.path.join(
-            pipeline_rootdir, "lib", "run.template.sh")
+            pipeline_rootdir, "..", "cfg", "run.template.sh")
         self.run_out = os.path.join(outdir, "run.sh")
         assert os.path.exists(self.run_template)
 
@@ -314,7 +302,6 @@ class PipelineHandler(object):
             self.write_cluster_config()
         self.write_merged_cfg()
         self.write_snakemake_env()
-        self.write_dk_init(self.dk_init_file)
         self.write_snakemake_init(self.snakemake_init_file)
         self.write_run_template()
 

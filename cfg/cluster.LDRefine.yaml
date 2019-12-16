@@ -5,18 +5,6 @@
       "mem" : 12G,
     },
 
-    "bcfMerge":
-    {
-      "time" : "5:00:00",
-      "mem" : 24G,
-    },
-
-    "Filter":
-    {
-       "time" : "5:00:00",
-       "mem" : 8G,
-    },
-
     "beagleSplit":
     {
        "time" : "5:00:00",
@@ -28,7 +16,7 @@
        "mem" : 24G,
     },
 
-    "phasingWithRef":
+    "phasingWithRef_merge":
     {
        "time" : "24:00:00",
        "mem" : 32G,
@@ -39,7 +27,7 @@
        "mem" : 24G,
     },
 
-    "phasingWithoutRef":
+    "phasingWithoutRef_merge":
     {
        "time" : "24:00:00",
        "mem" : 32G,
