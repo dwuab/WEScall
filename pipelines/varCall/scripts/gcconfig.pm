@@ -5,6 +5,7 @@ use Cwd qw(realpath);
 use File::Basename qw(dirname);
 use POSIX qw(pow sqrt);
 use FindBin;
+use YAML::XS 'LoadFile';
 
 ## Variables and methods shared across the package
 our @EXPORT = qw($regionBatchSize $REF_PATH $time_latency_job  $ref $md5 $bgzip $samtools $bcftools $bamUtil $tabix $index $pedf $out $vt $discoverUnit $genotypeUnit $batchtype $batchopts_step1 $batchopts_step2  $batchopts_step3 
@@ -15,45 +16,23 @@ our @EXPORT = qw($regionBatchSize $REF_PATH $time_latency_job  $ref $md5 $bgzip 
 our $index = "./data/samples.index";
 our $pedf = "./data/samples.ped";
 our $out = "out";
-# If you want to reduce the number of jobs in the cluster, please increase the sampleBatchSize and genotypeUnit 
-our $sampleBatchSize = 100; 
-our $regionBatchSize = 10; 
-our $discover_thread_perBatch = 12;    
-our $jointcall_thread_perBatch = 12;
-our $milk_thread_perBatch = 18;
-our $discoverUnit = 200000000000;
-our $genotypeUnit = 10000000;
-our $time_latency_job = 600;
 
+### clster settings are located at an external yaml configure file
+my $config = LoadFile("$FindBin::Bin/../../../cfg/varCall.cfg.yaml") or die __FILE__ . "configure file ../../cfg/varCall.cfg.yaml not found!\n";
 
+our $sampleBatchSize = $config->{"sampleBatchSize"}; 
+our $regionBatchSize = $config->{"regionBatchSize"}; 
+our $discover_thread_perBatch = $config->{"discover_thread_perBatch"};    
+our $jointcall_thread_perBatch = $config->{"jointcall_thread_perBatc"};
+our $milk_thread_perBatch = $config->{"milk_thread_perBatch"};
+our $discoverUnit = $config->{"discoverUnit"};
+our $genotypeUnit = $config->{"genotypeUnit"};
+our $time_latency_job = $config->{"time_latency_job"};
 
-### Please modify the cluster configuration informaiton for large-scale datasets!
-### the following settings are provided for reference
-### For jobs in NSCC, please specify the jobIDs 
-# if (-d '/home/users/astar/gis/userrig'){
-# 	our $batchtype = "pbs";
-# 	our $batchopts_step1 = "   -l  select=1:ncpus=$discover_thread_perBatch:mem=24G  -l walltime=24:00:00 -P 13000026 -q production";
-# 	our $batchopts_step2 = "   -l  select=1:ncpus=$jointcall_thread_perBatch:mem=32G -l walltime=24:00:00 -P 13000026 -q production";
-# 	our $batchopts_step3 = "   -l  select=1:ncpus=$milk_thread_perBatch:mem=24G -l walltime=24:00:00 -P 13000026 -q production";
-
-# }
-# elsif(-d '/home/userrig'){
-# 	our $batchtype = "sge";
-# 	our $batchopts_step1 = "-q medium.q  -pe OpenMP 1  -l mem_free=4G,h_rt=12:00:00 -V -cwd -terse -b y";
-# 	our $batchopts_step2 = "-q medium.q  -pe OpenMP 1  -l mem_free=12G,h_rt=12:00:00 -V -cwd -terse -b y";
-# 	our $batchopts_step3 = "-q medium.q  -pe OpenMP 1  -l mem_free=12G,h_rt=48:00:00 -V -cwd -terse -b y";
-# }
-# else{
-# 	our $batchtype = "pbs";
-# 	our $batchopts_step1 = "-q cu -l mem=4g -V";
-# 	our $batchopts_step2 = "-q cu -l mem=12g -V";
-# 	our $batchopts_step3 = "-q cu -l mem=12g -V";
-# }
-
-our $batchtype = "pbs";
-our $batchopts_step1 = "-q cu -l mem=4g -V";
-our $batchopts_step2 = "-q cu -l mem=12g -V";
-our $batchopts_step3 = "-q cu -l mem=12g -V";
+our $batchtype = $config->{"batchtype"};
+our $batchopts_step1 = $config->{"batchopts_step1"};
+our $batchopts_step2 = $config->{"batchopts_step2"};
+our $batchopts_step3 = $config->{"batchopts_step3"};
 
 ############################################################
 ### MODIFY THESE VARIABLES TO IF REFERENCE IS LOCATED ELSEWHERE

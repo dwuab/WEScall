@@ -1,0 +1,55 @@
+# This file stores some of the settings for WEScall varCall
+# review and edit the values as you see fit
+
+# 1 cluster scheduler/engine type
+# available options: sgei, sge, mosbatch, slurm, slurmi, pbs, local
+# for exact meanings of the above, please refer to WEScall/pipelines/varCall/scripts/runcluster.pl
+
+batchtype:                      "pbs"
+
+
+# 2 specify queue name, job time limit, and other qsub options
+
+# the following is what we used on a SGE cluster
+# batchopts_step1:                "-q medium.q -pe OpenMP 1 -l mem_free=4G,h_rt=12:00:00 -V -cwd -terse -b y"
+# batchopts_step2:                "-q medium.q -pe OpenMP 1 -l mem_free=12G,h_rt=12:00:00 -V -cwd -terse -b y"
+# batchopts_step3:                "-q medium.q -pe OpenMP 1 -l mem_free=12G,h_rt=48:00:00 -V -cwd -terse -b y"
+
+# the following is what we used on a PBS professional cluster
+# batchopts_step1：                "-l select=1:ncpus=12:mem=24G -l walltime=24:00:00 -q production";
+# batchopts_step2：                "-l select=1:ncpus=12:mem=32G -l walltime=24:00:00 -q production";
+# batchopts_step3：                "-l select=1:ncpus=18:mem=24G -l walltime=24:00:00 -q production";
+
+# for Torque scheduler
+batchopts_step1:                "-q cu -l mem=4g -V"
+batchopts_step2:                "-q cu -l mem=12g -V"
+batchopts_step3:                "-q cu -l mem=12g -V"
+
+
+# 3 other settings
+# to reduce the number of cluster jobs, we variant discovery of several samples into one cluster job
+# adjust this value along with memory and cpu usage
+sampleBatchSize:                100
+
+# number of regions bundled together in one cluster job for joint-genotyping
+regionBatchSize:                10
+
+# number of threads used for variant discovery job
+discover_thread_perBatch:       12
+
+# number of threads used for joint genotyping job
+jointcall_thread_perBatch:      12
+
+# number of threads used for milk job
+milk_thread_perBatch:           18
+
+# the length of the region (in bp) to perform variant discovery in one job
+discoverUnit:                   200000000000
+
+# the length of the region (in bp) to perform joint genotyping in one job
+genotypeUnit:                   10000000
+
+# the maximum allowed time delay (in seconds) between the completion of job 
+# and synchronization of outputs
+# increase this number if you have high NFS synchronization delay
+time_latency_job:               600
