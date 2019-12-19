@@ -99,7 +99,7 @@ rule merge:
 		'{chr}/{chr}.PhaseNoRef.OK',
 		'{chr}/{chr}.PhaseWithRef.OK'
 	output:
-		'{chr}/{chr}.Final.OK'
+		touch('{chr}/{chr}.Final.OK')
 	params:
 		myDir='{chr}/{chr}',
 		bedFile=config['users']['targetBed']
@@ -108,11 +108,17 @@ rule merge:
 	run:
 		shell("{APP}/vcftools --gzvcf {params.myDir}.PhaseNoRef.vcf.gz --bed {params.bedFile} --stdout --recode --recode-INFO-all | bgzip -c > {params.myDir}.PhaseNoRef.target.vcf.gz"),
 		shell("{APP}/vcftools --gzvcf {params.myDir}.PhaseWithRef.vcf.gz --exclude-bed {params.bedFile} --stdout --recode --recode-INFO-all | bgzip -c > {params.myDir}.PhaseWithRef.offtarget.vcf.gz"),
-		shell("{APP}/vcf-concat {params.myDir}.PhaseNoRef.target.vcf.gz {params.myDir}.PhaseWithRef.offtarget.vcf.gz |  bgzip -c > {params.myDir}.tmp.vcf.gz"),
-		shell("{APP}/vcf-sort {params.myDir}.tmp.vcf.gz  |  bgzip -c > {params.myDir}.Final.vcf.gz"),
-		shell("rm -rf {params.myDir}.tmp.vcf.gz  {params.myDir}.PhaseNoRef.target.vcf.gz   {params.myDir}.PhaseWithRef.offtarget.vcf.gz")
-		shell("touch  {params.myDir}.Final.OK")
+		shell("{APP}/vcf-concat {params.myDir}.PhaseNoRef.target.vcf.gz {params.myDir}.PhaseWithRef.offtarget.vcf.gz | bgzip -c > {params.myDir}.tmp.vcf.gz"),
+		
+		# What jinzhuang did, inconsistent with the paper
+		# shell("{APP}/vcf-sort {params.myDir}.tmp.vcf.gz | bgzip -c > {params.myDir}.Final.vcf.gz"),
+		# shell("rm -rf {params.myDir}.tmp.vcf.gz  {params.myDir}.PhaseNoRef.target.vcf.gz   {params.myDir}.PhaseWithRef.offtarget.vcf.gz")
 
+		# What I do
+		shell("{APP}/bcftools index {params.myDir}.PhaseNoRef.target.vcf.gz")
+		shell("{APP}/bcftools index {params.myDir}.PhaseWithRef.vcf.gz")
+		shell("{APP}/bcftools isec -C {params.myDir}.PhaseNoRef.target.vcf.gz {params.myDir}.PhaseWithRef.vcf.gz -Oz -p {params.myDir}_target_novel")
+		shell("{APP}/bcftools concat {params.myDir}.PhaseWithRef.vcf.gz {params.myDir}_target_novel/0000.vcf.gz | bcftools sort -Oz > {params.myDir}.Final.vcf.gz")
 
 rule phasingWithoutRef_merge:
 	""" phasing without reference using beagle 
