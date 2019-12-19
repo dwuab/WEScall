@@ -26,7 +26,7 @@ else
 	echo OK!
 fi
 
-g1k_ref_location=${DIR}/resources/1000G_v5a_filtered
+g1k_ref_location=${DIR}/resources/1000G_ref_panel
 printf "Expecting 1KG reference panel at %s\n" ${g1k_ref_location}
 if [ ! -d ${g1k_ref_location} ]; then
 	printf "1KG reference panel not found at %s!\n" ${g1k_ref_location}
