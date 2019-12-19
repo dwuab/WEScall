@@ -16,22 +16,22 @@ WEScall can:
 ## 2. Citation for our pipeline 
 
 Details of this pipeline can be found in our paper:  
-* Dou J, Wu D, ... , Wang C. Joint analysis of target and off-target data improves whole-exome sequencing studies (in preparation)
+* Jinzhuang Dou, Degang Wu, Lin Ding, Kai Wang, Minghui Jiang, Xiaoran Chai, Dermot F. Reilly, E Shyong Tai, Jianjun Liu, Xueling Sim, Shanshan Cheng, Chaolong Wang. Using off-target data from whole-exome sequencing to improve genotyping accuracy, association analysis, and phenotype prediction (in preparation)
 
 ## 3. Dependencies
 * python (version >= 3.5)
 * [Snakemake](https://snakemake.readthedocs.io/en/stable/) (version >= 5.4)
 * java (version >= 1.8.0)
 * perl (version >= v5.10)
+* perl module YAML::XS
 * bcftools (version >= 1.9)
+* parallel (optional)
 
-## 4. Download and install
+## 4. Download from github
 
 You can download our pipeline by the following command:
 
 `git clone https://github.com/dwuab/WEScall.git` 
-
-This command will create a folder named "WEScall". 
 
 ## 5. Getting started 
 
@@ -41,19 +41,18 @@ This command will create a folder named "WEScall".
 
 ### 5.1 Setting up for your cluster
 
-As there are no reliable ways to automatically detect the type of job scheduling systems (SGE, PBS, etc.), you have to do some set-up before running the pipeline. 
-You should check `${PL_DIR}/cfg/run.template.sh` and `${PL_DIR}/pipelines/varCall/scripts/gcconfig.pm` and modify them if necessary. The default settings are tested on a Torque (An implementation of PBS) cluster. 
-Earlier versions of this pipeline have been tested on a SGE cluster and a PBS Pro cluster. 
-Template files for SGE and PBS Pro clusters are provided for reference under `${PL_DIR}/cfg/`. 
-Settings for SGE and PBS Pro clusters are also provided in the comments in `${PL_DIR}/pipelines/varCall/scripts/gcconfig.pm`.
+Review and modify, if necessary, the contents of `${PL_DIR}/cfg/run.template.sh` and `${PL_DIR}/cfg/varCall.cfg.yaml`, according to the cluster engine type, queue name, wall time limits on your cluster.
+The default settings are tested on a Torque (An implementation of PBS) cluster. 
+We provide two example files, `${PL_DIR}/cfg/run.template.PBSPro.sh` and `${PL_DIR}/cfg/run.template.SGE.sh` to help you set up `${PL_DIR}/cfg/run.template.sh`.
+Comments in `${PL_DIR}/cfg/varCall.cfg.yaml` should be helpful too.
 
 ### 5.2 Generating 1KG reference panel
 
-**Please run** `${PL_DIR}/scripts/create_g1k_ref.sh` to generate the files needed from official 1KGP3 release .vcf files.
+**Please run** `${PL_DIR}/scripts/create_g1k_ref.sh` to generate 1000G reference panel files. You should have downloaded 1000G phase 3 data before running this command.
 
 ### 5.3 Setting up links to resource files
 
-**Please run** `${PL_DIR}/scripts/check_resources.sh` to check what resources files you lack and ways to download it.
+**Please run** `${PL_DIR}/scripts/check_resources.sh` to check what resources files you lack and ways to download it. If the script determines the absence of a particular resource file, please copy the mentioned resource file to the expected place or make a soft link to it.
 
 ## 6. Running the pipeline
 
@@ -61,9 +60,10 @@ Settings for SGE and PBS Pro clusters are also provided in the comments in `${PL
 Before running WEScall, you should first prepare a file, `samples.index`, containing a list of samples to call. The file have the same format required by [TopMed](https://github.com/statgen/topmed_freeze3_calling) pipeline.
 Each line of `samples.index` is of the following format:
 ```
-  [sampleID] [Full Path to BAM/CRAM file] [Contamination rate -- set to zero if unknown].
+  [sampleID] [Absolute Path to BAM/CRAM file] [Contamination rate -- set to zero if unknown].
 ``` 
 **THERE CANNOT BE EMPTY LINES IN `samples.index` FILE!**
+**The path to BAM/CRAM file should be absolute.**
 The index file has to be **tab-delimited**. 
 BAM/CRAM files listed are assumed to be indexed and **contain no hard clipped reads**, i.e., reads whose CIGAR string contains "H".
 
@@ -72,7 +72,7 @@ You should also prepare a configure file specifying the chromosomes to call, the
 ```
   chrs: 1,2,10,20,X  
   targetBed:  ${PL_DIR}/WEScall/resources/SeqCap_EZ_Exome_v3_primary.bed
-  1KG3_panel: ${PL_DIR}/WEScall/resources/data_v5a_filtered
+  1KG3_panel: ${PL_DIR}/WEScall/resources/1000G_ref_panel
   geneticMap: ${PL_DIR}/WEScall/resources/geneticMap_GRCh37
   seqType:    WES
 ``` 
@@ -165,7 +165,7 @@ See if the error messages clearly point out the underlying sources of errors and
 
 Occasionally, a job has finished, but it takes a long time for the outputs it generated to be synchronized to other computing nodes. 
 In this case, the master job will be informed by the cluster scheduler that the job has been finished but unable to detect the expected output files.
-For example, if you see the following in the log:
+For example, if you see sentences like the following in the log file:
 ```
 Waiting at most 600 seconds for missing files.
 MissingOutputException in line 191 of /opt/software/WEScall/pipelines/LDRefine/Snakefile.beagle.WES:
@@ -173,6 +173,7 @@ Missing files after 600 seconds:
 20_split/20
 This might be due to filesystem latency.
 ```
+but cannot find out the 
 
 ## 9. Questions
-For further questions, please raise issues through github (recommended), or contact Jinzhuang Dou <jinzhuangdou198706@gmail.com> or Degang Wu <dwuab@alumni.ust.hk>.
+For further questions, please raise issues through github (recommended), or contact Degang Wu <dwuab@alumni.ust.hk> or Jinzhuang Dou <jinzhuangdou198706@gmail.com>.

@@ -1,4 +1,0 @@
-[Tue Feb 19 12:52:45 2019] KeyError in line 35 of /mnt/projects/wangcl/ancestry/software/pipelines_web_dev/varCall/Snakefile:
-'topMed'
-  File "/mnt/projects/wangcl/ancestry/software/pipelines_web_dev/varCall/Snakefile", line 35, in <module>
-/mnt/projects/wangcl/ancestry/software/pipelines_web_dev/lib
