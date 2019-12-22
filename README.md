@@ -50,9 +50,14 @@ Comments in `${PL_DIR}/cfg/varCall.cfg.yaml` should be helpful too.
 
 **Please run** `${PL_DIR}/scripts/create_g1k_ref.sh` to generate 1000G reference panel files. You should have downloaded 1000G phase 3 data before running this command.
 
+Link to 1000G phase 3 data: ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/
+
 ### 5.3 Setting up links to resource files
 
 **Please run** `${PL_DIR}/scripts/check_resources.sh` to check what resources files you lack and ways to download it. If the script determines the absence of a particular resource file, please copy the mentioned resource file to the expected place or make a soft link to it.
+
+Link to GotCloud resource bundle: ftp://anonymous@share.sph.umich.edu/gotcloud/ref/hs37d5-db142-v1.tgz
+Link to genetic map: http://bochet.gcc.biostat.washington.edu/beagle/genetic_maps/plink.GRCh37.map.zip
 
 ## 6. Running the pipeline
 
@@ -127,30 +132,22 @@ After the QC procedure is finished, the final .vcf files will be located at, e.g
 ## 7. Frequently used settings and operations
 
 ### 7.1. server specific settings
-If you want to run this pipeline on the cluster of PBS and require to add the project IDs and queue names. You can do the following modifications.
-```
-  ${PL_DIR}/pipelines/lib/run.template.PBS.sh    Line:44-45
-  44  #PBS -P 13000026
-  45  #PBS -q production
+If you want to modify the queue names and pass other parameters to `qsub`. You can modify header of `${PL_DIR}/cfg/run.template.sh`, and `batchopts_step1`, `batchopts_step2`, `batchopts_step3` options of `${PL_DIR}/cfg/varCall.cfg.yaml`.
 
-  ${PL_DIR}/topMed/scripts/gcconfig.pm Line:26,27,28
-  26  our $batchopts_step1 = "   -l  select=1:ncpus=1:mem=10G  -l walltime=12:00:00 -P 13000026 -q production";
-  27  our $batchopts_step2 = "   -l  select=1:ncpus=1:mem=50G -l walltime=24:00:00 -P 13000026 -q production";
-  28  our $batchopts_step3 = "   -l  select=1:ncpus=1:mem=50G -l walltime=24:00:00 -P 13000026 -q production";
-```
 ### 7.2. Memory settings of variant calling
-The joint calling step may take huge memory when the sample size is very large (>1,000). This may kill the program. You can address this issue by either setting the maximum memory usage or splitting genome into smaller regions (default 1Mb).
+The joint calling step may take huge memory when the sample size is very large (>1,000). The cluster engine may terminate the jobs due to excessive memoery usage. You can address this issue by either modifying the amount of requested memory or splitting genome into smaller regions (default 1Mb).
 
-Increase the maximum memory usage:
-```
-${PL_DIR}/topMed/scripts/gcconfig.pm Line:27
-27  our $batchopts_step2 = "   -l  select=1:ncpus=1:mem=50G -l walltime=24:00:00 -P 13000026 -q production";
-```
-Split the whole genome into smaller regions (default 1Mb): 
-```
-${PL_DIR}/topMed/scripts/gcconfig.pm Line:19
-19  our $genotypeUnit = 1000000;
-```
+To adjust the maximum memory usage, modify `batchopts_step1`, `batchopts_step2`, `batchopts_step3` options of `${PL_DIR}/cfg/varCall.cfg.yaml`.
+
+To split the whole genome into smaller regions (default 1Mb), modify `genotypeUnit` of `${PL_DIR}/cfg/varCall.cfg.yaml`.
+
+You can also modify the memory and time limits for the jobs in `${PL_DIR}/cfg/cluster.varCall.yaml` and `${PL_DIR}/cfg/cluster.LDRefine.yaml`.
+
+### 7.3 Run the pipeline in local mode
+Sometimes it is tricky to set up the pipeline for your own cluster engine, but you want to try this pipeline anyway, you can run the pipeline in local mode.
+For `varCall` step, you should set `batchtype` to `local` in `${PL_DIR}/cfg/cluster.varCall.yaml`, and run the step by `./run.sh` instead of `qsub run.sh`.
+For `LDRefine` step, simply run `./run.sh`.
+`QC` step runs in local mode by default.
 
 ## 8. Frequently encountered problems
 
@@ -173,7 +170,9 @@ Missing files after 600 seconds:
 20_split/20
 This might be due to filesystem latency.
 ```
-but cannot find out the 
+but cannot find out other reasons for premature termination, file system latency might be the issue.
+Simple resubmission of the job could solve the issue.
+Alternatively, you can also increase the time latency by adjusting `time_latency_job` of `${PL_DIR}/cfg/varCall.cfg.yaml`, and modify `DEFAULT_SNAKEMAKE_ARGS` in `${PL_DIR}/cfg/run_template.sh`.
 
 ## 9. Questions
 For further questions, please raise issues through github (recommended), or contact Degang Wu <dwuab@alumni.ust.hk> or Jinzhuang Dou <jinzhuangdou198706@gmail.com>.
