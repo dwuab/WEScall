@@ -16,7 +16,7 @@ my $rmLst = "";
 my $keepLst = "";
 my $type = "";
 my $cmdDir = $cmdPath; $cmdDir =~ s/\/[^\/]+$//; $cmdDir =~ s/\/[^\/]+$//;
-my $bgzip = "/seq/astar/gis/projects/wangcl/software/topmed_freeze3_calling/htslib/bgzip";  # Fix me
+my $bgzip = "$FindBin::Bin/htslib/bgzip";
 
 my $result = GetOptions(
     "invcf=s",\$invcf,
@@ -26,15 +26,12 @@ my $result = GetOptions(
 	"out=s",\$out,
 	);
 
-#my $usage = "Usage: perl run_svm.pl --invcf [$invcf] --out [$out] --ignore [@ignores] --include [@includes] --checkNA\n";
-
-
 my $usage = <<END;
 --------------------------------------------------------------------------------
 
-QC.pl: Remove sites that do not pass the SVM filter
+apply_SVM_filter.pl: Remove sites that do not pass the SVM filter
 
-Usage: perl QC.pl --invcf [input VCF file] --out [output Dir] \
+Usage: perl apply_SVM_filter.pl --invcf [input VCF file] --out [output Dir] \
 	Options:
 	--invcf      Input VCF file with rich set of INFO fields
 	--removeLst  Input site file with the SVM INFO field
@@ -138,7 +135,7 @@ elsif($type eq "WES"){
 
 	my $targetInCnt=0;
 	my $offtargetInCnt=0;
-	open O, "| bgzip -c >  $out";
+	open O, "| $bgzip -c >  $out";
 	if ($invcf =~ m/\.gz$/){
 		if (! -e $invcf) {
 			die "$invcf does not exists!\n";
