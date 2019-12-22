@@ -71,7 +71,27 @@ hapmap_sites_index_location=${DIR}/pipelines/varCall/gotcloud.ref/hapmap_3.3.b37
 printf "Expecting hapmap_3.3.b37.sites.vcf.gz.tbi at %s\n" $hapmap_sites_index_location
 if [ ! -e ${hapmap_sites_index_location} ]; then
 	printf "%s not found!\n" ${hapmap_sites_index_location}
-	printf "You can index %s by tabix" ${hapmap_sites_index_location}
+	printf "You can index %s by tabix" hapmap_3.3.b37.sites.vcf.gz
+	exit
+else
+	echo OK!
+fi
+
+dbsnp_location=${DIR}/pipelines/varCall/gotcloud.ref/dbsnp_142.b37.vcf.gz
+printf "Expecting dbsnp_142.b37.vcf.gz at %s\n" $dbsnp_location
+if [ ! -e $dbsnp_location ]; then
+	printf "%s not found!\n" $dbsnp_location
+	printf "You can get it from gotcloud resource bundle at %s\n" $gotcloud_url
+	exit
+else
+	echo OK!
+fi
+
+dbsnp_index_location=${DIR}/pipelines/varCall/gotcloud.ref/dbsnp_142.b37.vcf.gz.tbi
+printf "Expecting dbsnp_142.b37.vcf.gz.tbi at %s\n" $dbsnp_index_location
+if [ ! -e $dbsnp_index_location ]; then
+	printf "%s not found!\n" $dbsnp_index_location
+	printf "You can index %s by tabix" dbsnp_142.b37.vcf.gz.tb
 	exit
 else
 	echo OK!
