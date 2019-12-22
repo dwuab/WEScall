@@ -84,7 +84,7 @@ rule bcfMerge:
 	run:
 		shell("mkdir -p {wildcards.chr}"),
 		vcf=orderVCF({input.bcf}),
-		shell("{APP}/bcftools concat {vcf} -o {output.vcf} -Oz >& {log}"),
+		shell("{APP}/bcftools concat {vcf} -o {output.vcf} -Oz >& {log}")
 
 
 rule apply_SVM_filter:

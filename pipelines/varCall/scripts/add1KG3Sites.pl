@@ -20,7 +20,7 @@ for(my $i=0; $i<@file; $i++){
 			# check if bcftools is located at the expected path
 			if (!(-e "$TopMed/../bcftools/bcftools")) {die "$TopMed/../bcftools/bcftools not found!"};
 
-			my $cmd="$TopMed/../bcftools/bcftools  concat $mypath/$file[$i]   $refPanel/ALL.chr$chr.phase3.20130502.SNP.biallelic.MAF0.01.sites.vcf.gz   -r $chr:$t[1]-$t[2] -o $mypath/$file[$i].addSite -O b  -a  -d all";	
+			my $cmd="$TopMed/../bcftools/bcftools concat $mypath/$file[$i] $refPanel/ALL.chr$chr.phase3.20130502.SNP.biallelic.MAF0.01.sites.vcf.gz -r $chr:$t[1]-$t[2] -o $mypath/$file[$i].addSite -O b -a -d all";	
 
 			my $result = system($cmd);
 			if($result!=0) {die("bcftools concat error!")};

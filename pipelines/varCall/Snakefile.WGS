@@ -34,26 +34,86 @@ CHRS = str(config['users']['chrs']).split(',')
 REFPANEL = config['users']['1KG3_panel']
 
 
-TMP  = os.path.dirname(os.path.realpath(workflow.snakefile))
-APP  = os.path.join(TMP, "../apps")
-SCRIPT = os.path.join(TMP, "../lib")
-#TOPMED = config['users']['topMed']
-TOPMED = os.path.join(TMP,"../topMed")
+dir_snakefile = os.path.dirname(os.path.realpath(workflow.snakefile))
+APP  = os.path.join(dir_snakefile, "../../apps")
+SCRIPT = os.path.join(dir_snakefile, "../lib")
+TOPMED = dir_snakefile
+
+def atoi(text):
+    return int(text) if text.isdigit() else text
+
+def natural_keys(text):
+
+    if re.search("phasing",text):
+        text=re.split('/', text)[-1]
+        return [atoi(re.split('\.', text)[2])]
+    else:
+        text=re.split('/', text)[-1]
+        return [atoi(re.split('_', text)[2])]
 
 
+def orderVCF(para):
+    item=list(para.pop())
+    item.sort(key=natural_keys)
+    return ' '.join(item)
+
+def get_bcf_fn_list(wildcards):
+	checkpoint_output=checkpoints.VarDetect.get(**wildcards).output.bcf
+
+	return expand("out/paste/{chr}/{chr}_{interval}_paste.bcf",
+		chr=wildcards.chr,
+		interval=glob_wildcards(os.path.join(checkpoint_output,
+			"{chr}_{interval,\d+_\d+}_paste.bcf")).interval)
 
 
+def get_svm_site(wildcards):
+	checkpoint_output=checkpoints.svmFilter.get(**wildcards).output.site
 
-#step1_cpu = config['users'][
-#step2_cpu = config['users']['JointCall_MaxJob_per_chr']
-#step3_cpu = config['users']['SvmFilter_MaxJob_per_chr']
+	return expand("out/svm/site_chr{chr}/{chr}_1_{end}_milk_transfer.sites.vcf.gz",
+		chr=wildcards.chr,
+		end=glob_wildcards(os.path.join(checkpoint_output,
+			"{chr}_1_{end}_milk_transfer.sites.vcf.gz")).end)
+
 
 wildcard_constraints:
 	chr="[1-9]|1[0-9]|2[0-2]|X"
 
+
 rule all:
 	input:
-		expand('out/svm/{chr}.svmFilter.OK', chr=CHRS)
+		expand('{chr}/{chr}.Filter.OK', chr=CHRS)
+
+
+rule bcfMerge:
+	""" Merge bcf files into one vcf file per chromosome
+	"""   
+	input:
+		bcf=get_bcf_fn_list,
+		flag=expand('out/svm/{chr}.svmFilter.OK', chr=CHRS)
+	output:
+		flag=touch('{chr}/bcfMerge.{chr}.OK'),
+		vcf='{chr}/{chr}.all.vcf.gz'
+	log:
+		'{chr}/bcfMerge.{chr}.log'
+	threads:
+		1
+	run:
+		shell("mkdir -p {wildcards.chr}"),
+		vcf=orderVCF({input.bcf}),
+		shell("{APP}/bcftools concat {vcf} -o {output.vcf} -Oz >& {log}")
+
+
+rule apply_SVM_filter:
+    input:
+       vcf='{chr}/{chr}.all.vcf.gz',
+       site='out/svm/{chr}_milk_transfer.sites.vcf.gz'
+    output:
+       vcf='{chr}/{chr}.Filter.vcf.gz',
+       flag=touch('{chr}/{chr}.Filter.OK')
+    threads:
+       1
+    run:
+       shell("perl {dir_snakefile}/apply_SVM_filter.pl --invcf {input.vcf} --removeLst {input.site} --out {output.vcf} --type WGS"),
 
 
 rule svmBuildModel_chr1:
@@ -61,13 +121,12 @@ rule svmBuildModel_chr1:
 		'out/aux/milk/milk.1.1.Milk.OK',
 		'out/aux/milk/milk.X.X.Milk.OK',
 	output:
-		'out/svm/BuildModel.OK'
+		flag=touch('out/svm/BuildModel.OK')
 	threads:
 		4
 	run:
 		shell("perl {TOPMED}/scripts/step3b-run-svm-milk-filter.pl 1"),
 		shell("perl {TOPMED}/scripts/step3b-run-svm-milk-filter.pl X"),
-		shell("touch out/svm/BuildModel.OK")
 
 
 rule svmFilter:
@@ -75,27 +134,24 @@ rule svmFilter:
 		milkOK='out/aux/milk/milk.{chr}.{chr}.Milk.OK',
 		svmBuildOK='out/svm/BuildModel.OK'
 	output:
-		'out/svm/{chr}.svmFilter.OK'
-	params:
-		chr='{chr}'
+		flag=touch('out/svm/{chr}.svmFilter.OK'),
+		site='out/svm/{chr}_milk_transfer.sites.vcf.gz'
 	threads:
 		4
 	run:
-		shell("perl {TOPMED}/scripts/step3c-run-milk-transfer.pl {params.chr}"),
-		shell("touch out/svm/{params.chr}.svmFilter.OK")
+		shell("perl {TOPMED}/scripts/step3c-run-milk-transfer.pl {wildcards.chr}"),
 
 
-rule VarDetect:
+checkpoint VarDetect:
 	output:
-		'out/aux/milk/milk.{chr}.{chr}.Milk.OK'
+		flag='out/aux/milk/milk.{chr}.{chr}.Milk.OK',
+		bcf=directory("out/paste/{chr}")
 	params:
-		chr='{chr}',
-		thread=1,
 		step1_cpu=10,
 		step2_cpu=100,
 		step3_cpu=10,
 	threads:
 		1
 	run:
-		shell("perl {TOPMED}/scripts/step1-3a.pl WGS {params.chr}  {REFPANEL} {params.step1_cpu} {params.step2_cpu} {params.step3_cpu}");
-		shell("touch out/aux/milk/milk.{params.chr}.{params.chr}.Milk.OK")
+		shell("perl {TOPMED}/scripts/step1-3a.pl WGS {wildcards.chr} {REFPANEL} {params.step1_cpu} {params.step2_cpu} {params.step3_cpu}");
+		shell("touch out/aux/milk/milk.{wildcards.chr}.{wildcards.chr}.Milk.OK")

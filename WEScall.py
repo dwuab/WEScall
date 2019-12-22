@@ -71,84 +71,6 @@ def varCall(args):
 	pipeline_handler.setup_env()
 	pipeline_handler.submit(no_run=True)
 
-def splitGenome(args):
-	logger.debug("split: "+str(args))
-
-	PIPELINE_BASEDIR = os.path.join(os.path.dirname(sys.argv[0]),"phasing")
-	CFG_DIR = os.path.join(PIPELINE_BASEDIR, "cfg")
-
-	assert os.path.exists("varCall/out/paste"), "Cannot detect the directory of varaiant detection"
-
-	if not os.path.exists("phasing"):
-		os.mkdir("phasing")
-
-	# detects .bcf file names produced in variant detection step
-	samples = dict()
-	sites = dict()
-	chrs=dict()
-	# Fix it to use the abs path.
-	# detect the finished chromosome according to *.OK. 
-	for chrFlag in glob.glob(os.path.join("varCall/out/paste", '*.OK')):  
-		chrFlag=chrFlag.strip('.OK').split('/')[-1]
-		for fileName in glob.glob(os.path.join("varCall/out/paste", chrFlag,'*.bcf')):
-			if not (chrFlag in samples):
-				samples[chrFlag] = []
-			samples[chrFlag].append(os.path.abspath(fileName))
-
-	#  fix me
-	#  detect the site files after SVM filter. 
-	#  now only handle the format "22_1_51304566_milk_transfer.uniq.sites.vcf.gz"
-	#  if no site files available, all sites will be assigned to the flag PASS.
-
-	seq_type=get_seq_type_from_user_cfg(args.userCfg)
-
-	if seq_type == 'WGS':
-		
-		for fullName in glob.glob(os.path.join("./varCall/out/svm", '*milk_transfer.sites.vcf.gz')):
-			fileName=fullName.split('/')[-1]  
-			chrFlag=fileName.split('_')[0].split('/')[-1]
-			sites.setdefault(chrFlag, []).append(os.path.abspath(fullName))
-			chrs.setdefault(chrFlag, []).append("")
-	else:
-		fullName = os.path.join("./varCall/out/svm", '0_1_0_milk_svm.sites.vcf.gz');
-		for  chrFlag in range(1, 23):
-			 sites.setdefault(chrFlag, []).append(os.path.abspath(fullName))
-			 chrs.setdefault(chrFlag, []).append("")
-
-	with open("phasing/sample.yaml", 'w') as fh:
-		yaml.dump(dict(samples=samples), fh, default_flow_style=False)
-		yaml.dump(dict(sites=sites), fh, default_flow_style=False)
-		yaml.dump(dict(chr=chrs), fh, default_flow_style=False)
-
-	sample_cfg = "./phasing/sample.yaml";
-	
-	if sample_cfg:
-		if not os.path.exists(sample_cfg):
-			logger.fatal("Config file %s does not exist", sample_cfg)
-			sys.exit(1)
-
-	with open(sample_cfg) as fh_cfg:
-		yaml_data = yaml.safe_load(fh_cfg)
-
-		chrs, sites, Chr = yaml_data['samples'], yaml_data['sites'], yaml_data['chr']
-
-	# turn arguments into user_data that gets merged into pipeline config
-	#
-	# generic data first
-	user_data = dict()
-	user_data['sites'] = sites
-	user_data['samples'] = chrs
-	user_data['chr'] = chrs
-
-	pipeline_handler = PipelineHandler(
-		"WEScall_splitGenome", PIPELINE_BASEDIR, 
-		"phasing",user_data=user_data,
-		Snakefile="Snakefile.split."+seq_type,
-		cluster_cfgfile=get_cluster_cfgfile(CFG_DIR),
-		user_cfgfile=args.userCfg)
-
-	pipeline_handler.setup_env()
-	pipeline_handler.submit(no_run=True)
 
 def LDRefine(args):
 	logger.debug("LDRefine: "+str(args))
@@ -267,7 +189,7 @@ def main():
 	parser_varCall.add_argument('-s', '--sample-list', required=True,
 								help="The list of study samples, paths to the corresponding BAM/CRAM files and contamination rates")
 	parser_varCall.set_defaults(func=varCall)
-	
+
 	parser_LDRefine = subparsers.add_parser('LDRefine', parents=[common_parser],
 		help='Perform LD-based genotype refinement',
 		formatter_class=argparse.ArgumentDefaultsHelpFormatter)

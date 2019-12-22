@@ -1,6 +1,7 @@
 #!/usr/bin/perl -w
 
 use strict;
+use warnings;
 use Time::HiRes qw(usleep nanosleep);
 use File::Path;
 use File::Basename;

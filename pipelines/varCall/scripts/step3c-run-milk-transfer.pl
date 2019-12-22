@@ -14,7 +14,7 @@ use gcconfig;
 my @chrs = @ARGV;
 
 if ( $#chrs < 0 ) {
-    die "Usage: [command] [list of chromosomes separated by space]\n";
+    die __FILE__ . ": Usage: [command] [list of chromosomes separated by space]\n";
 }
 
 
@@ -37,7 +37,7 @@ my $cutoff = -0.5;
 ## 
 
 unless ( -e "$svmDir" ) {
-    mkdir("$svmDir") || die "Cannot create directory $pasteDir\n";
+    mkdir("$svmDir") || die __FILE__ . ": Cannot create directory $svmDir\n";
 }
 
 my @names = ();
@@ -60,11 +60,14 @@ my @dupdisc = (0,1,1,1,0,1,1,1,0);
 
 foreach my $chr (@chrs) {
     my $szchr = $hszchrs{$chr}->[3];
-    my $out = "$svmDir/$chr\_1\_$szchr\_milk_transfer";
+    my $prefix = "$svmDir/$chr\_1\_$szchr\_milk_trans";;
+    my $base_prefix = "$chr\_1\_$szchr\_milk_transfer";
+    # simplify output file name for the sake of snakemake
+    my $simplified_prefix = "$chr\_milk_transfer";
 
-    print STDERR "Writing the feature information for libsvm..\n";
-    open(RAW,">$out.raw") || die "Cannot open $out.raw for writing\n";
-    open(SITE,">$out.site") || die "Cannot open $out.raw for writing\n";
+    print STDOUT __FILE__ . ": Writing the feature information for libsvm..\n";
+    open(RAW,">$prefix.raw") || die "Cannot open $prefix.raw for writing\n";
+    open(SITE,">$prefix.site") || die "Cannot open $prefix.raw for writing\n";
     open(IN,"zcat $pasteDir/$chr\_1\_$szchr\_paste.sites.vcf.gz|") || die "Cannot open file\n";
 
     my @hdrs = ();
@@ -88,8 +91,8 @@ foreach my $chr (@chrs) {
 	    next if ( defined($hIgnores{$key}) );
 	    next unless defined($val); ## skip keys without any values
 	    if ( defined($hIncludes{$key}) ) {
-		if ( !($checkNA) || ($val =~ /^([+-]?)(?=\d|\.\d)\d*(\.\d*)?([Ee]([+-]?\d+))?$/ ) ) {
-		    $values[$hIncludes{$key}] = $val; # set value if given
+			if ( !($checkNA) || ($val =~ /^([+-]?)(?=\d|\.\d)\d*(\.\d*)?([Ee]([+-]?\d+))?$/ ) ) {
+			    $values[$hIncludes{$key}] = $val; # set value if given
 		}
 	    }
 	    else {
@@ -111,7 +114,7 @@ foreach my $chr (@chrs) {
 	}
 	if ( $ncols == 0 ) {
 	    $ncols = $#names+1;
-	    print STDERR "Recording following $ncols features : @names\nThe info field was $info\n@infos\n";
+	    print STDOUT __FILE__ . ": Recording following $ncols features : @names\nThe info field was $info\n@infos\n";
 	    die if ( $ncols == 0 );
 	}
 	elsif ( $ncols != $#values+1 ) {
@@ -124,13 +127,13 @@ foreach my $chr (@chrs) {
     close RAW;
     close SITE;
 
-    print STDERR "Performing quantile normalization of features..\n";    
-    my $cmd = "$invNorm --in $out.raw --out $out.norm";
+    print STDOUT __FILE__ . ": Performing quantile normalization of features..\n";    
+    my $cmd = "$invNorm --in $prefix.raw --out $prefix.norm";
     &forkExecWait($cmd);
 
-    open(SITE,"$out.site") || die "Cannot open $out.sites\n";
-    open(NORM,"$out.norm") || die "Cannot open $out.norm\n";
-    open(FTR,">$out.feature") || die "Cannot open $out.feature\n";
+    open(SITE,"$prefix.site") || die "Cannot open $prefix.sites\n";
+    open(NORM,"$prefix.norm") || die "Cannot open $prefix.norm\n";
+    open(FTR,">$prefix.feature") || die "Cannot open $prefix.feature\n";
 
     my ($npos,$nneg,$noth) = (0,0,0);
     while(<SITE>) {
@@ -146,18 +149,19 @@ foreach my $chr (@chrs) {
     close FTR;
     close SITE;
 
-    print STDERR "Applying trained SVM model on $noth variants\n";
+    print STDOUT __FILE__ . ": Applying trained SVM model on $noth variants\n";
 
-    $cmd = "$svmclassify $out.feature $modelf $out.svm.pred";
+    $cmd = "$svmclassify $prefix.feature $modelf $prefix.svm.pred";
     &forkExecWait($cmd);
 
-    print STDERR "Writing filtered site VCF files with SVM scores..\n";
-    open(SITE,"$out.site") || die "Cannot open $out.sites\n";    
-    open(PRED,"$out.svm.pred") || die "Cannot open $out.svm.pred file\n";
-    open(OUT,"| $bgzip -c > $out.sites.vcf.gz") || die "Cannot open $out.sites.vcf.gz\n";
-    open(OUTU,"| $bgzip -c > $out.uniq.sites.vcf.gz") || die "Cannot open $out.sites.vcf.gz\n";
+    print STDOUT __FILE__ . ": Writing filtered site VCF files with SVM scores..\n";
+    open(SITE,"$prefix.site") || die "Cannot open $prefix.sites\n";    
+    open(PRED,"$prefix.svm.pred") || die "Cannot open $prefix.svm.pred file\n";
+    open(OUT,"| $bgzip -c > $svmDir/${simplified_prefix}.sites.vcf.gz") || die "Cannot open $svmDir/$base_prefix.sites.vcf.gz\n";
+    open(OUTU,"| $bgzip -c > $prefix.uniq.sites.vcf.gz") || die "Cannot open $prefix.uniq.sites.vcf.gz\n";
 
     my $milkVcf = "$milkDir/$chr\_1\_$szchr\_milk.sites.vcf.gz";
+    unless ( -e $milkVcf ) { die "File " . $milkVcf . " not found!"  }
     open(MILK,"zcat $milkVcf | cut -f 1-8| grep -v ^#|") || die "Cannot open file\n";    
 
     splice(@hdrs,$#hdrs,0,"##INFO=<ID=SVM,Number=1,Type=Float,Description=\"Milk-SVM score for variant quality, passing -0.5 or greater\">\n");
@@ -246,15 +250,15 @@ foreach my $chr (@chrs) {
    print "hapmapvcf  $hapmapvcf\n";
    print "bgzip   $bgzip\n";
    print "tabix  $tabix\n";
-   print "chr  $bgzip\n";
-   print "out $out\n";
+   print "chr  $chr\n";
+   print "out $prefix\n";
  
-    print STDERR "Producing VCF summary for SNPs..\n";
-    print STDERR "Producing VCF summary for SNPs..\n";
-    open(IN,"zcat $out.sites.vcf.gz|") || die "Cannot open file\n";
-    open(OUT1, "| perl $vcfsummary --ref $ref --db $dbsnp --FNRvcf $hapmapvcf --bgzip $bgzip --tabix $tabix --chr $chr --info AC --info-breaks $acbreaks > $out.sites.summary_ac") || die "Cannot open file\n";
-    open(OUT2, "| perl $vcfsummary --ref $ref --db $dbsnp --FNRvcf $hapmapvcf --bgzip $bgzip --tabix $tabix --chr $chr > $out.sites.summary") || die "Cannot open file\n";
-    open(OUT3, "| perl $vcfsummary2 --ref $ref --db $dbsnp --FNRvcf $hapmapvcf --bgzip $bgzip --tabix $tabix --chr $chr > $out.sites.summary_v2") || die "Cannot open file\n";    
+    print STDOUT __FILE__ . ": Producing VCF summary for SNPs..\n";
+
+    open(IN,"zcat $svmDir/$simplified_prefix.sites.vcf.gz|") || die "Cannot open file\n";
+    open(OUT1, "| perl $vcfsummary --ref $ref --db $dbsnp --FNRvcf $hapmapvcf --bgzip $bgzip --tabix $tabix --chr $chr --info AC --info-breaks $acbreaks > $prefix.sites.summary_ac") || die "Cannot open file\n";
+    open(OUT2, "| perl $vcfsummary --ref $ref --db $dbsnp --FNRvcf $hapmapvcf --bgzip $bgzip --tabix $tabix --chr $chr > $prefix.sites.summary") || die "Cannot open file\n";
+    open(OUT3, "| perl $vcfsummary2 --ref $ref --db $dbsnp --FNRvcf $hapmapvcf --bgzip $bgzip --tabix $tabix --chr $chr > $prefix.sites.summary_v2") || die "Cannot open file\n";    
     while(<IN>) {
 	next if ( /^#/ );
 	my @F = split;

@@ -103,7 +103,7 @@ while (<SQ>)
 
         next if (!exists($CHROM{$chrom}));
 
-        print "processing $chrom\t$len ";
+        print STDOUT basename(__FILE__) . ": processing $chrom with length: $len bp\n";
 
         push(@CHROM, $chrom);
 
@@ -135,7 +135,7 @@ while (<SQ>)
             push(@{$intervalNamesByChrom{$chrom}}, $intervalName);
         }
 
-        print "added $count intervals\n";
+        print STDOUT basename(__FILE__) . "added $count intervals\n";
     }
 }
 close(SQ);
@@ -181,18 +181,19 @@ for my $i (0 .. $#intervals)
     my @cmd_OK=();
     my $preSampleCnt = 0;
     my $sample_max = @SAMPLE;
-    print STDOUT "test\n";
-    print STDOUT "@SAMPLE\n";
+
+    print STDOUT basename(__FILE__) . ": @SAMPLE\n";
+
     for my $sampleID (@SAMPLE)
     {
-        print STDOUT $sampleID."\n";
+        print STDOUT basename(__FILE__) . ": processing" . $sampleID."\n";
         $SampleCnt ++;
         $outputVCFFile = "$individualDir/$sampleID/$intervalNames[$i].sites.bcf";
         #$tgt = "$outputVCFFile.OK";
         $dep = "$logDir/start.discovery.OK";
         my $current_cmd="set -o pipefail; $REF_PATH  $samtools view -h $BAMFILE{$sampleID} $intervals[$i] -u | $bamUtil clipoverlap --poolSize 100000000 --in -.ubam --out -.ubam | $vt discover2 -z -q 20 -b + -r $refGenomeFASTAFile -s $sampleID -i $intervals[$i] -o $outputVCFFile 2> $individualDir/$sampleID/$intervalNames[$i].discover2.log && touch $outputVCFFile.OK";
         push(@cmd,$current_cmd);
-        print "$current_cmd\n";
+        print STDOUT basename(__FILE__) . ": command to be executed: $current_cmd\n";
         push(@cmd_OK,"$outputVCFFile.OK");
         if($SampleCnt % $batch_size == 0 || $SampleCnt == $sample_max ){
             my $batchName = "$intervalNames[$i]"."_S$preSampleCnt"."_$SampleCnt";
