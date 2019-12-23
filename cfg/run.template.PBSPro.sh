@@ -41,7 +41,6 @@
 #PBS -l walltime={MASTER_WALLTIME_H}:00:00
 # cpu & memory: memory shoots up for heavily multiplexed libraries
 #PBS -l select=1:mem=4g:ncpus=1 
-#PBS -P 13000026
 #PBS -q production
 # keep env so that qsub works
 #PBS -V
@@ -67,7 +66,7 @@ DEFAULT_SNAKEMAKE_ARGS="--rerun-incomplete --timestamp --printshellcmds --stats 
 
 if [ "$ENVIRONMENT" == "BATCH" ]; then
     # define qsub options for all jobs spawned by snakemake
-    clustercmd="-l select=1:ncpus={{threads}}:mem={{cluster.mem}} -q production  -P  13000026 -l walltime={{cluster.time}}"
+    clustercmd="-l select=1:ncpus={{threads}}:mem={{cluster.mem}} -q production -l walltime={{cluster.time}}"
     # log files names: qsub -o|-e: "If path is a directory, the standard error stream of
     clustercmd="$clustercmd -e $LOGDIR -o $LOGDIR"
     # PBS: cwd (workaround for missing SGE option "-cwd")

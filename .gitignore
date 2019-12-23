@@ -5,5 +5,13 @@ topMed/gotcloud.ref/hs37d5.fa.fai
 resources/data_v5a_filtered
 resources/geneticMap_GRCh37
 !resources/SeqCap_EZ_Exome_v3_primary.bed.gz
-!resources/hdr.txt
-!resources/hdr_X.txt
+example/test_WES/*.bam
+example/test_WES/*.bai
+example/test_WES/varCall
+example/test_WES/LDRefine
+example/test_WES/QC
+pipelines/varCall/gotcloud.ref/dbsnp_142.b37.vcf.gz
+pipelines/varCall/gotcloud.ref/dbsnp_142.b37.vcf.gz.tbi
+resources/1000G_ref_panel/
+resources/SeqCap_EZ_Exome_v3_primary.bed
+

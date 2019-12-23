@@ -20,7 +20,7 @@
     "VarDetect":
     {
       "time" : "100:00:00",
-      "mem" : 4G,
+      "mem" : 10G,
     },
 
     "bcfMerge":
