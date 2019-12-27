@@ -108,9 +108,9 @@ rule merge:
 	run:
 		shell("{APP}/vcftools --gzvcf {params.myDir}.PhaseNoRef.vcf.gz --bed {params.bedFile} --stdout --recode --recode-INFO-all | bgzip -c > {params.myDir}.PhaseNoRef.target.vcf.gz"),
 		shell("{APP}/vcftools --gzvcf {params.myDir}.PhaseWithRef.vcf.gz --exclude-bed {params.bedFile} --stdout --recode --recode-INFO-all | bgzip -c > {params.myDir}.PhaseWithRef.offtarget.vcf.gz"),
-		shell("{APP}/vcf-concat {params.myDir}.PhaseNoRef.target.vcf.gz {params.myDir}.PhaseWithRef.offtarget.vcf.gz | bgzip -c > {params.myDir}.tmp.vcf.gz"),
 		
 		# What jinzhuang did, inconsistent with the paper
+		# shell("{APP}/vcf-concat {params.myDir}.PhaseNoRef.target.vcf.gz {params.myDir}.PhaseWithRef.offtarget.vcf.gz | bgzip -c > {params.myDir}.tmp.vcf.gz"),
 		# shell("{APP}/vcf-sort {params.myDir}.tmp.vcf.gz | bgzip -c > {params.myDir}.Final.vcf.gz"),
 		# shell("rm -rf {params.myDir}.tmp.vcf.gz  {params.myDir}.PhaseNoRef.target.vcf.gz   {params.myDir}.PhaseWithRef.offtarget.vcf.gz")
 
@@ -135,7 +135,6 @@ rule phasingWithoutRef_merge:
 		1
 	run:
 		vcf=orderVCF({input.vcf})
-		print(vcf)
 		if len(input.vcf)==1:
 			shell("cp {vcf} {wildcards.chr}/{wildcards.chr}.PhaseNoRef.vcf.gz")
 		else:
@@ -148,17 +147,20 @@ rule phasingWithoutRef_parallel:
 	input:
 		'{chr}_split/chr{chr}.Split.{ID}.vcf.gz'
 	output:
-		'{chr}/chr{chr}.phasingNoRef.{ID}.vcf.gz',
-		touch('{chr}/chr{chr}.phasingNoRef.{ID}.vcf.gz.OK')
+		vcf='{chr}/chr{chr}.phasingNoRef.{ID}.vcf.gz',
+		flag=touch('{chr}/chr{chr}.phasingNoRef.{ID}.vcf.gz.OK'),
+		target_vcf=temp("{chr}/chr{chr}.phasingNoRef.{ID}.tmp.vcf.gz")
 	params:
 		resourcePath=config['users']['geneticMap'],
+		target_bed=config['users']['targetBed'],
 		javaOption='-Xmx'+config["cluster"]["phasingWithoutRef_parallel"]["mem"],
-		prefix='{chr}/chr{chr}.phasingNoRef.{ID}',
+		prefix='{chr}/chr{chr}.phasingNoRef.{ID}'
 	threads:
 		12
 	run: 
+		shell("{APP}/bcftools view -T <(awk '{{print $1\"\\t\"$2-100\"\\t\"$3+100}}' {params.target_bed}) {input} -Oz > {output.target_vcf}")
 		shell("java -jar {params.javaOption} {APP}/beagle.27Jul16.86a.jar "
-		  "gl={input} impute=false modelscale=2 nthreads={threads} gprobs=true "
+		  "gl={output.target_vcf} impute=false modelscale=2 nthreads={threads} gprobs=true "
 		  "map={params.resourcePath}/plink.chr{wildcards.chr}.GRCh37.map "
 		  "chrom={wildcards.chr} "
 		  "niterations=0 out={params.prefix}")
