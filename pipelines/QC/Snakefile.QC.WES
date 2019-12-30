@@ -242,3 +242,21 @@ rule merge:
 rule all:
 	input:
 		flags=expand("flags/merge_chr{chr}.OK",chr=CHRS)
+	run:
+		for region in ("target","off_target"):
+			for chrom in CHRS:
+				for step in range(1,7):
+					shell("bcftools stats QC_WIP/{chrom}.{region}.step{step}.vcf.gz > tmp/{chrom}.{region}.step{step}.stats")
+
+		with open("after_QC/QC_summary.txt","w") as f_out:
+			for region in ("target", "off_target"):
+				for step in range(1,7):
+					num_SNPs=0
+					num_indels=0
+					for chrom in CHRS:
+						for ret in shell("grep \"number of SNPs:\" tmp/{chrom}.{region}.step{step}.stats | cut -d\":\" -f2 | cut -f2",iterable=True):
+							num_SNPs += int(ret)
+						for ret in shell("grep \"number of indels:\" tmp/{chrom}.{region}.step{step}.stats | cut -d\":\" -f2 | cut -f2",iterable=True):
+							num_indels += int(ret)
+					f_out.write("QC step{step}: {num_SNPs} SNPs remained and {num_indels} indels remained in {region} region\n".format(step=step,num_SNPs=num_SNPs,num_indels=num_indels,region=region))
+				
