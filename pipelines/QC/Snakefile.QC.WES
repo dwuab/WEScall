@@ -15,15 +15,31 @@ rule step1:
 	output:
 		target_vcf="QC_WIP/{chr}.target.step1.vcf.gz",
 		off_target_vcf="QC_WIP/{chr}.off_target.step1.vcf.gz",
+		off_target_indel_vcf=temp("tmp/{chr}.off_target.step1.indel.vcf.gz"),
+		target_vcf_tmp=temp("tmp/{chr}.target.step1.vcf.gz"),
 		flag=touch("flags/{chr}.step1.OK")
 	run:
 		# using bcftools view -T rather than -R due to a long-exisitng bug of bcftools
 		shell("if [ ! -e {input.final_vcf}.csi ]; then bcftools index {input.final_vcf}; fi")
 
 		# assign ID to each variant to facilitate further filtering
+
+		# for indels lying on the boundaries of target regions, it is ambiguous as regards
+		# to whether they are in the target regions or not
+		# different softwares may have different definitions of whether an indel is in a region
+		# here we determine that all indels in .Final.vcf.gz is in target region, but bcftools
+		# decides that some of them are not in the target regions
+		# therefore we have to extract indels in the non-target regions and put it back to 
+		# target region vcf
+		shell("bcftools view -T ^{input.target_bed} {input.final_vcf} -v indels -Ou | "
+			"bcftools annotate --set-id +'%CHROM\\_%POS\\_%REF\\_%FIRST_ALT' -Oz --threads 2 > {output.off_target_indel_vcf}")
 		shell("bcftools view -T {input.target_bed} {input.final_vcf} -Ou | "+
-			"bcftools annotate --set-id +'%CHROM\\_%POS\\_%REF\\_%FIRST_ALT' -Oz --threads 2 > {output.target_vcf}")
-		shell("bcftools view -T ^{input.target_bed} {input.final_vcf} -Ou | "+
+			"bcftools annotate --set-id +'%CHROM\\_%POS\\_%REF\\_%FIRST_ALT' -Oz --threads 2 > {output.target_vcf_tmp}")
+		shell("bcftools concat {output.off_target_indel_vcf} {output.target_vcf_tmp} -Ou | "
+			"bcftools sort -T {output.target_vcf}_tmp -Oz > {output.target_vcf}"
+			)
+
+		shell("bcftools view -T ^{input.target_bed} {input.final_vcf} -v snps -Ou | "
 			"bcftools annotate --set-id +'%CHROM\\_%POS\\_%REF\\_%FIRST_ALT' -Oz --threads 2 > {output.off_target_vcf}")
 		
 		shell("bcftools index -f {output.target_vcf}")
