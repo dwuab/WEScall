@@ -203,7 +203,7 @@ rule phasingWithRef_parallel:
 		refPanelPath=config['users']['1KG3_panel'],
 		javaOption='-Xmx'+config["cluster"]["phasingWithRef_parallel"]["mem"],
 		prefix='{chr}/chr{chr}.phasingWithRef.{job}',
-		log="/tmp/chr{chr}.phasingWithRef.{job}.beagle.log"
+		log="{chr}/chr{chr}.phasingWithRef.{job}.log"
 	threads:
 		24
 	run: 
@@ -212,7 +212,7 @@ rule phasingWithRef_parallel:
 		  "map={params.geneticPath}/plink.chr{wildcards.chr}.GRCh37.map "
 		  "chrom={wildcards.chr} "
 		  "ref={params.refPanelPath}/ALL.chr{wildcards.chr}.phase3.20130502.SNP.indel.biallelic.mac5.vcf.gz "
-		  "niterations=0  out={params.prefix} | tee {params.log} && if grep -q 'error' {params.log}; then exit 1; fi")
+		  "niterations=0  out={params.prefix} && if grep -q 'error' {params.log}; then exit 1; fi")
 
 
 checkpoint beagleSplit:
