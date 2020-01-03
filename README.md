@@ -66,7 +66,7 @@ Before running WEScall, you should first prepare a file, `samples.index`, contai
 Each line of `samples.index` is of the following format:
 ```
   [sampleID] [Absolute Path to BAM/CRAM file] [Contamination rate -- set to zero if unknown].
-``` 
+```
 **THERE CANNOT BE EMPTY LINES IN `samples.index` FILE!**
 **The path to BAM/CRAM file should be absolute.**
 The index file has to be **tab-delimited**. 
@@ -80,7 +80,7 @@ You should also prepare a configure file specifying the chromosomes to call, the
   1KG3_panel: ${PL_DIR}/WEScall/resources/1000G_ref_panel
   geneticMap: ${PL_DIR}/WEScall/resources/geneticMap_GRCh37
   seqType:    WES
-``` 
+```
 The first line specifies which chromosomes you want to call. Chromosomes that can be called are chromosomes 1 to 22 and X. WEScall can not call variants from chromosome Y. You can specify multiple chromosomes one by one, delimited by comma (for example 20,22). 
 
 The second line specifies the target region bed file. It lists the targeted exonic regions with start and stop chromosome locations in GRCh37/hg19. Note, WEScall can also support the analysis of WGS samples, in which case the target region bed file is not necessary. 
@@ -95,13 +95,13 @@ Now we can generate the master job file using the following command
 
 ```
 cd ${WK_DIR} && python ${PL_DIR}/WEScall.py varCall -c user.cfg.yaml -s samples.index
-``` 
+```
 After running this command, the folder `${WK_DIR}/varCall` will be generated, storing the execute script `${WK_DIR}/varCall/run.sh` and configure file `${WK_DIR}/varCall/cluster.yaml`. Users can modify these files before running the pipeline if necessary. 
 
 You can submit the variant calling master job using
 ```
 cd varCall && qsub run.sh >> ./logs/submission.log  
-``` 
+```
 If any job is killed prematurely, you can resume the master job by using the command again. You can check `${WK_DIR}/varCall/logs/WEScall_varCall.master.log` for progress or diagnose premature terminations of jobs. 
 If the running is successful, the vcf files after SVM filtering are placed in, e.g.,  `${WK_DIR}/varCall/1/1.Filter.vcf.gz`
 
@@ -117,7 +117,7 @@ cd ${WK_DIR} && python ${PL_DIR}/WEScall.py LDRefine -c user.cfg.yaml
 
 Finally, you can submit the variant phasing master job using
 ```
-cd phasing && qsub run.sh >> ./logs/submission.log
+cd LDRefine && qsub run.sh >> ./logs/submission.log
 ```
 When all above jobs are finished, the genotyping results are stored in `${WK_DIR}/LDRefine`. For example, users can see genotypes from chromosome 1 in `${WK_DIR}/LDRefine/1/1.Final.vcf.gz` 
 
