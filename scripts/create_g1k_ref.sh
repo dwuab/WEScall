@@ -55,13 +55,13 @@ if hash parallel 2>/dev/null; then
 	parallel -j8 --env g1k_path,DIR,filter_autosome 'echo processing chr {} && filter_autosome {}' ::: {1..22}
 	echo processing chr X && filter_X_chr
 
-	parallel -j8 --env DIR 'bcftools view -v snps -i "MAF>=0.01" -G resources/1000G_ref_panel/ALL.chr{}.phase3.20130502.SNP.indel.biallelic.mac5.vcf.gz -Oz --threads 2 > $DIR/resources/1000G_ref_panel/ALL.chr{}.phase3.20130502.SNP.biallelic.MAF0.01.sites.vcf.gz' ::: {X,{1..22}}
+	parallel -j8 --env DIR 'bcftools view -v snps -i "MAF>=0.01" -G $DIR/resources/1000G_ref_panel/ALL.chr{}.phase3.20130502.SNP.indel.biallelic.mac5.vcf.gz -Oz --threads 2 > $DIR/resources/1000G_ref_panel/ALL.chr{}.phase3.20130502.SNP.biallelic.MAF0.01.sites.vcf.gz' ::: {X,{1..22}}
 	parallel -j8 --env DIR 'bcftools index $DIR/resources/1000G_ref_panel/ALL.chr{}.phase3.20130502.SNP.biallelic.MAF0.01.sites.vcf.gz' ::: {X,{1..22}} 
 else
 	for chr in {1..22}; do echo processing chr${chr}; filter_autosome ${chr}; done
 	echo processing chr X && filter_X_chr
 
-	for chr in {X,{1..22}}; do bcftools view -v snps -i "MAF>=0.01" -G resources/1000G_ref_panel/ALL.chr${chr}.phase3.20130502.SNP.indel.biallelic.mac5.vcf.gz -Oz --threads 2 > $DIR/resources/1000G_ref_panel/ALL.chr${chr}.phase3.20130502.SNP.biallelic.MAF0.01.sites.vcf.gz; done
+	for chr in {X,{1..22}}; do bcftools view -v snps -i "MAF>=0.01" -G $DIR/resources/1000G_ref_panel/ALL.chr${chr}.phase3.20130502.SNP.indel.biallelic.mac5.vcf.gz -Oz --threads 2 > $DIR/resources/1000G_ref_panel/ALL.chr${chr}.phase3.20130502.SNP.biallelic.MAF0.01.sites.vcf.gz; done
 	for chr in {X,{1..22}}; do bcftools index $DIR/resources/1000G_ref_panel/ALL.chr${chr}.phase3.20130502.SNP.biallelic.MAF0.01.sites.vcf.gz; done
 fi
 
