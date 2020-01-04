@@ -51,7 +51,7 @@ g1k_omni25_index_location=${DIR}/pipelines/varCall/gotcloud.ref/1000G_omni2.5.b3
 printf "Expecting 1000G_omni2.5.b37.sites.PASS.vcf.gz.tbi at %s\n" $g1k_omni25_index_location
 if [ ! -e ${g1k_omni25_index_location} ]; then
 	printf "%s not found!\n" ${g1k_omni25_index_location}
-	printf "You can index %s by tabix" ${g1k_omni25_index_location}
+	printf "You can index %s by tabix.\n" ${g1k_omni25_index_location}
 	exit
 else
 	echo OK!
@@ -71,7 +71,7 @@ hapmap_sites_index_location=${DIR}/pipelines/varCall/gotcloud.ref/hapmap_3.3.b37
 printf "Expecting hapmap_3.3.b37.sites.vcf.gz.tbi at %s\n" $hapmap_sites_index_location
 if [ ! -e ${hapmap_sites_index_location} ]; then
 	printf "%s not found!\n" ${hapmap_sites_index_location}
-	printf "You can index %s by tabix" hapmap_3.3.b37.sites.vcf.gz
+	printf "You can index %s by tabix.\n" hapmap_3.3.b37.sites.vcf.gz
 	exit
 else
 	echo OK!
@@ -91,7 +91,7 @@ dbsnp_index_location=${DIR}/pipelines/varCall/gotcloud.ref/dbsnp_142.b37.vcf.gz.
 printf "Expecting dbsnp_142.b37.vcf.gz.tbi at %s\n" $dbsnp_index_location
 if [ ! -e $dbsnp_index_location ]; then
 	printf "%s not found!\n" $dbsnp_index_location
-	printf "You can index %s by tabix" dbsnp_142.b37.vcf.gz.tb
+	printf "You can index %s by tabix.\n" dbsnp_142.b37.vcf.gz.tb
 	exit
 else
 	echo OK!
