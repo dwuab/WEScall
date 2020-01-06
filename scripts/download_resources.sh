@@ -24,7 +24,7 @@ fi
 
 printf "downloading gotcloud bundles ...\n"
 
-pushd $DIR/pipelines/varCall/gotcloud.ref/
+pushd $DIR/pipelines/varCall/
 
 wget ftp://anonymous@share.sph.umich.edu/gotcloud/ref/hs37d5-db142-v1.tgz
 
