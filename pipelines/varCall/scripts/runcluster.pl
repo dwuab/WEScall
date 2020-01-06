@@ -346,7 +346,9 @@ sub waitforcommand {
     if ($submitline =~ /Submitted batch job (\S+)/) { $jobid = $1; }    # Good for SLURM
     if ($submitline =~ /^(\d+)\./) { $jobid = $1; }         # Good for PBS
     if ($submitline =~ /job (\d+) \(/) { $jobid = $1; }     # Good for SGE
+    if ($submitline =~ /^(\d+)/) { $jobid = $1; }         # Good for aquila on 5Jan2020
     if (! $jobid) {
+	print STDOUT $submitline . "\n";
         warn "Unable to determind $engine job-id. Waiting may fail. Line=$submitline\n";
         $jobid = 'lost-job-id';
     }
