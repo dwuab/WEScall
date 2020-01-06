@@ -158,7 +158,7 @@ def QC(args):
 	with open("./QC/QC_params.yaml","w") as fh_cfg:
 		fh_cfg.write(yaml.dump(user_cfg_dict))
 
-	PIPELINE_BASEDIR = os.path.dirname(sys.argv[0])
+	PIPELINE_BASEDIR = os.path.dirname(os.path.realpath(__file__))
 
 	cmd="PL_DIR="+PIPELINE_BASEDIR+" && cd QC && snakemake -s ${PL_DIR}/pipelines/QC/Snakefile.QC.WES "+\
 		"--configfile QC_params.yaml --cores 20 --printshellcmds all"
