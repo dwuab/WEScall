@@ -1,5 +1,5 @@
 chrs: 20
-targetBed:  /opt/software/WEScall/resources/SeqCap_EZ_Exome_v3_primary.bed 
-1KG3_panel: /opt/software/WEScall/resources/1000G_ref_panel/
-geneticMap: /opt/software/WEScall/resources/geneticMap_GRCh37/
+targetBed:  /home/wud/test_WEScall/WEScall/resources/SeqCap_EZ_Exome_v3_primary.bed 
+1KG3_panel: /home/wud/test_WEScall/WEScall/resources/1000G_ref_panel/
+geneticMap: /home/wud/test_WEScall/WEScall/resources/geneticMap_GRCh37/
 seqType:    WES
