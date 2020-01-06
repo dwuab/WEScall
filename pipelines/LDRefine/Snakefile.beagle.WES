@@ -156,7 +156,7 @@ rule phasingWithoutRef_parallel:
 		javaOption='-Xmx'+config["cluster"]["phasingWithoutRef_parallel"]["mem"],
 		prefix='{chr}/chr{chr}.phasingNoRef.{ID}'
 	threads:
-		12
+		6
 	run: 
 		shell("{APP}/bcftools view -T <(awk '{{print $1\"\\t\"$2-100\"\\t\"$3+100}}' {params.target_bed}) {input} -Oz > {output.target_vcf}")
 		shell("java -jar {params.javaOption} {APP}/beagle.27Jul16.86a.jar "
@@ -205,7 +205,7 @@ rule phasingWithRef_parallel:
 		prefix='{chr}/chr{chr}.phasingWithRef.{job}',
 		log="{chr}/chr{chr}.phasingWithRef.{job}.log"
 	threads:
-		24
+		6
 	run: 
 		shell("java -jar {params.javaOption} {APP}/beagle.27Jul16.86a.jar "
 		  "gl={input.vcf} impute=false modelscale=2 nthreads={threads} gprobs=true "
