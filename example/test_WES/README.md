@@ -17,11 +17,11 @@ samtools index 151002_7001448_0359_AC7F6GANXX_Sample_HG003-EEogPU_v02-KIT-Av5_TC
 samtools index 151002_7001448_0359_AC7F6GANXX_Sample_HG004-EEogPU_v02-KIT-Av5_CCGAAGTA_L008.posiSrt.markDup.bam
 ```
 
-step 3: set up the pipeline, which is already described in section 5 of the main README.md
+step 3: set up the pipeline, which is already described in section 4 of the main README.md
 
 step 4: make sure the dependencies of the pipeline have been satisfied. ***In particular, make sure python3 can be found in $PATH.***
 
-step 5: review and modify `user.cfg.yaml` if necessary. Set the environement variable `PL_DIR=/path/to/WEScall`.
+step 5: review and modify parameters, **in particular, paths to various resource files**, in `user.cfg.yaml` if necessary. Do the same to `sample.index`. Set the environment variable `PL_DIR=/path/to/WEScall`.
 
 step 6: run `python ${PL_DIR}/WEScall.py varCall -c user.cfg.yaml -s samples.index`. If no error is encountered. Run `cd varCall && qsub run.sh >> ./logs/submission.log`. Check the status of jobs through `qstat` or equivalent commands. If you find the phrase `100% done` at the end of `varCall/logs/WEScall_varCall.master.log`. This step is done.
 

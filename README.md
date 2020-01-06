@@ -39,9 +39,7 @@ You can download our pipeline by the following command:
 
 ### 4.1 Generating 1KG reference panel
 
-**Please run** `${PL_DIR}/scripts/create_g1k_ref.sh` to generate 1000G reference panel files. You should have downloaded 1000G phase 3 data before running this command.
-
-Link to 1000G phase 3 data: [ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/](ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/)
+**Please run** `${PL_DIR}/scripts/create_g1k_ref.sh` to generate 1000G reference panel files. You should have downloaded [1000G phase 3 data]([ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/](ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/)) before running this command.
 
 ### 4.2 Downloading resource files
 
@@ -189,10 +187,10 @@ perl: symbol lookup error: /mnt/software/lib/perl5/5.10.1/auto/Cwd/Cwd.so: undef
 
 it's likely that you have at least two perl installations in your system and one perl installation is trying to load extensions compiled for another perl installation. Set your environment variable `PERL5LIB` appropriately so that versions of the extensions match the perl executable. 
 
-According to our own experience, perl that comes with `miniconda` might trigger such error. If this is the case, try to set `PATH` environment variable so that perl that comes with the Linux distro is used. A workaround is, create a folder `perl_bin` that contains links to `perl` and `cpan`, and then set `PATH` in `~/.bashrc` in the following fashion:
+According to our own experience, perl that comes with `miniconda` might trigger such error. If this is the case, set the environment variable `PERL5LIB`  in your `.bashrc` :
 
 ```bash
-export PATH=/path/to/perl_bin/:/path/to/conda/:$PATH
+export PERL5LIB=/path/to/conda/lib:$PERL5LIB
 ```
 
 
