@@ -35,9 +35,11 @@ rule step1:
 			"bcftools annotate --set-id +'%CHROM\\_%POS\\_%REF\\_%FIRST_ALT' -Oz --threads 2 > {output.off_target_indel_vcf}")
 		shell("bcftools view -T {input.target_bed} {input.final_vcf} -Ou | "+
 			"bcftools annotate --set-id +'%CHROM\\_%POS\\_%REF\\_%FIRST_ALT' -Oz --threads 2 > {output.target_vcf_tmp}")
+		shell("mkdir -p {output.target_vcf}_tmp")
 		shell("bcftools concat {output.off_target_indel_vcf} {output.target_vcf_tmp} -Ou | "
 			"bcftools sort -T {output.target_vcf}_tmp -Oz > {output.target_vcf}"
 			)
+		shell("rm -rf {output.target_vcf}_tmp")
 
 		shell("bcftools view -T ^{input.target_bed} {input.final_vcf} -v snps -Ou | "
 			"bcftools annotate --set-id +'%CHROM\\_%POS\\_%REF\\_%FIRST_ALT' -Oz --threads 2 > {output.off_target_vcf}")
