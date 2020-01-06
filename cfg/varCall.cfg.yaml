@@ -5,15 +5,15 @@
 # available options: sgei, sge, mosbatch, slurm, slurmi, pbs, local
 # for exact meanings of the above, please refer to WEScall/pipelines/varCall/scripts/runcluster.pl
 
-batchtype:                      "pbs"
+batchtype:                      "sge"
 
 
 # 2 specify queue name, job time limit, and other qsub options
 
 # the following is what we used on a SGE cluster
-# batchopts_step1:                "-q medium.q -pe OpenMP 1 -l mem_free=4G,h_rt=12:00:00 -V -cwd -terse -b y"
-# batchopts_step2:                "-q medium.q -pe OpenMP 1 -l mem_free=12G,h_rt=12:00:00 -V -cwd -terse -b y"
-# batchopts_step3:                "-q medium.q -pe OpenMP 1 -l mem_free=12G,h_rt=48:00:00 -V -cwd -terse -b y"
+batchopts_step1:                "-q medium.q -pe OpenMP 1 -l mem_free=4G,h_rt=12:00:00 -V -cwd -terse -b y"
+batchopts_step2:                "-q medium.q -pe OpenMP 1 -l mem_free=12G,h_rt=12:00:00 -V -cwd -terse -b y"
+batchopts_step3:                "-q medium.q -pe OpenMP 1 -l mem_free=12G,h_rt=48:00:00 -V -cwd -terse -b y"
 
 # the following is what we used on a PBS professional cluster
 # batchopts_step1：                "-l select=1:ncpus=12:mem=24G -l walltime=24:00:00 -q production";
@@ -21,9 +21,9 @@ batchtype:                      "pbs"
 # batchopts_step3：                "-l select=1:ncpus=18:mem=24G -l walltime=24:00:00 -q production";
 
 # for Torque scheduler
-batchopts_step1:                "-q cu -l mem=4g -V"
-batchopts_step2:                "-q cu -l mem=12g -V"
-batchopts_step3:                "-q cu -l mem=12g -V"
+# batchopts_step1:                "-q cu -l mem=4g -l ncpus=12 -l walltime=24:00:00 -V"
+# batchopts_step2:                "-q cu -l mem=12g -l ncpus=12 -l walltime=24:00:00 -V"
+# batchopts_step3:                "-q cu -l mem=12g -l ncpus=18 -l walltime=24:00:00 -V"
 
 
 # 3 other settings

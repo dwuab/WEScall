@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# to run this submission script on the NSCC use:
-#   qsub [-q production] run.sh
+# to run this submission script on aquila use:
+#   qsub run.sh
 # or to run locally use
 #   bash run.sh
 # for reruns on aquila use:
@@ -29,43 +29,44 @@
 # --forceall : for debug only
 # --dryrun : just print what would happen
 
-# Torque options:
-# The #PBS must be used to specify Torque options
+# UGE options:
+# The #$ must be used to specify the grid engine options used by qsub. 
 # declare a name for this job to be sample_job
-#PBS -N {PIPELINE_NAME}.master
+#$ -N {PIPELINE_NAME}.master
 # logs
-#PBS -o {LOGDIR}
+#$ -o {LOGDIR}
 # combine stdout/stderr
-#PBS -j oe
-# cpu & memory: memory shoots up for heavily multiplexed libraries
-#PBS -l mem=4g
-#PBS -q cu
-#PBS -V
+#$ -j y
+# snakemake control job run time
+#$ -l h_rt={MASTER_WALLTIME_H}:00:00
+# memory: can be massive for complex DAGs
+#$ -l mem_free=16G
+# 'parallel env'
+#$ -pe OpenMP 1
+# run the job in the current working directory (where qsub is called)
+#$ -cwd
+# keep env so that qsub works
+#$ -V
+
 
 DEBUG=${{DEBUG:-0}}
-#export DRMAA_LIBRARY_PATH=
-#DRMAA_OFF=${{DRMAA_OFF:-0}}
-DRMAA_OFF=1
+export DRMAA_LIBRARY_PATH=$SGE_ROOT/lib/lx-amd64/libdrmaa.so
+DRMAA_OFF=${{DRMAA_OFF:-0}}
 DEFAULT_SLAVE_Q={DEFAULT_SLAVE_Q}
 SNAKEFILE={SNAKEFILE}
 LOGDIR="{LOGDIR}";# should be same as defined above
-DEFAULT_SNAKEMAKE_ARGS="--rerun-incomplete --printshellcmds --stats $LOGDIR/{PIPELINE_NAME}.stats --configfile conf.yaml --latency-wait 600"
+DEFAULT_SNAKEMAKE_ARGS="--rerun-incomplete --printshellcmds --stats $LOGDIR/snakemake.stats --configfile conf.yaml --latency-wait 60"
 # --rerun-incomplete: see https://groups.google.com/forum/#!topic/snakemake/fbQbnD8yYkQ
 # --timestamp: prints timestamps in log
 # --printshellcmds: also prints actual commands
 # --latency-wait: might help with FS sync problems. also used by broad: https://github.com/broadinstitute/viral-ngs/blob/master/pipes/Broad_LSF/run-pipe.sh
 
-# check if the script is run in PBS batch mode
-if [ "$PBS_ENVIRONMENT" == "PBS_BATCH" ]; then
+
+if [ "$ENVIRONMENT" == "BATCH" ]; then
     # define qsub options for all jobs spawned by snakemake
-    clustercmd="-l ncpus={{threads}} -l mem={{cluster.mem}} -q cu"
+    clustercmd="-pe OpenMP {{threads}} -l mem_free={{cluster.mem}} -l h_rt={{cluster.time}}"
     # log files names: qsub -o|-e: "If path is a directory, the standard error stream of
-    clustercmd="$clustercmd -e $LOGDIR -o $LOGDIR"
-    # PBS: cwd (workaround for missing SGE option "-cwd")
-    # for Torque, when submitting a batch job from a running interactive job and with 
-    # option -V, $PBS_O_PATH is no longer the directory from which the job is submitted.
-    # Therefore, the correct working directory has to be specified directly
-    cd {WORKING_DIR}
+    clustercmd="$clustercmd -cwd -V -e $LOGDIR -o $LOGDIR"
     if [ -n "$SLAVE_Q" ]; then
         clustercmd="$clustercmd -q $SLAVE_Q"
     elif [ -n "$DEFAULT_SLAVE_Q" ]; then 
@@ -84,6 +85,7 @@ else
     N_ARG="--cores 8"
 fi
 
+
 if [ "$DEBUG" -eq 1 ]; then
     echo "DEBUG ENVIRONMENT=$ENVIRONMENT" 1>&2;
     #echo "DEBUG *ENV* $(set | grep ENV)" 1>&2;
@@ -98,17 +100,17 @@ fi
 
 
 # dotkit setup
-# source rc/dk_init.rc || exit 1
+#source rc/dk_init.rc || exit 1
 
 # snakemake setup
-# source rc/snakemake_init.rc || exit 1
+#source rc/snakemake_init.rc || exit 1
 
 test -d $LOGDIR || mkdir $LOGDIR
 
 
 sm_args="-s $SNAKEFILE"
 sm_args="$sm_args $N_ARG"
-#sm_args="$sm_args  --restart-times 10  --max-status-checks-per-second 1  "
+#sm_args="$sm_args --restart-times 10   --max-status-checks-per-second 1  "
 sm_args="$sm_args $DEFAULT_SNAKEMAKE_ARGS"
 sm_args="$sm_args $EXTRA_SNAKEMAKE_ARGS"
 
@@ -148,7 +150,6 @@ if [ $is_dryrun != 1 ]; then
 else
     echo "Skipping MongoDB update (dryrun)"
 fi
-
 
 cmd="snakemake $sm_args >> {MASTERLOG} 2>&1"
 if [ $DEBUG -eq 1 ]; then
