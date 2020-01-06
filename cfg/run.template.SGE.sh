@@ -47,9 +47,6 @@
 #$ -cwd
 # keep env so that qsub works
 #$ -V
-# email address (for abort and kills only, everything else handled by snakemake)
-#$ -M {MAILTO}
-#$ -m a
 
 
 DEBUG=${{DEBUG:-0}}
@@ -58,7 +55,7 @@ DRMAA_OFF=${{DRMAA_OFF:-0}}
 DEFAULT_SLAVE_Q={DEFAULT_SLAVE_Q}
 SNAKEFILE={SNAKEFILE}
 LOGDIR="{LOGDIR}";# should be same as defined above
-DEFAULT_SNAKEMAKE_ARGS="--rerun-incomplete --timestamp  --printshellcmds --stats $LOGDIR/snakemake.stats --configfile conf.yaml --latency-wait 60"
+DEFAULT_SNAKEMAKE_ARGS="--rerun-incomplete --printshellcmds --stats $LOGDIR/snakemake.stats --configfile conf.yaml --latency-wait 60"
 # --rerun-incomplete: see https://groups.google.com/forum/#!topic/snakemake/fbQbnD8yYkQ
 # --timestamp: prints timestamps in log
 # --printshellcmds: also prints actual commands

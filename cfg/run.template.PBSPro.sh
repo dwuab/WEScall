@@ -1,4 +1,4 @@
-/#!/bin/bash
+#!/bin/bash
 
 # to run this submission script on the NSCC use:
 #   qsub [-q production] run.sh
