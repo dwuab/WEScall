@@ -174,7 +174,7 @@ Clearly you don't have perl module YAML::XS installed on your system. Run `cpan 
 
 You can install the required python module `drmaa` by `pip install drmaa`.
 
-### 7.5 Mysterious perl error messages
+### 7.5 `perl: symbol lookup error`
 
 If you get the following message:
 
