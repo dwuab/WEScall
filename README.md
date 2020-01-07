@@ -148,10 +148,7 @@ For `LDRefine` step, simply run `./run.sh`.
 
 ### 7.1 Pipeline stops prematurely
 
-Symptoms: `qstat` shows the master job as finished, but in the master log you can't find statement `(100%) done`. 
-The first thing to do is to find out whether the pipeline has encountered any error in its execution. For example, you can run `grep error ${WK_DIR}/varCall/logs/*` in the log folder to see all mentions of errors. 
-See if the error messages come from a particular script or from Snakemake.
-See if the error messages clearly point out the underlying sources of errors and if yes try to address the errors.
+Symptoms: `qstat` shows the master job as finished, but in the master log you can't find statement `(100%) done`. The first thing to do is to find out whether the pipeline has encountered any error in its execution. For example, you can run `grep error ${WK_DIR}/varCall/logs/*` in the log folder to see all mentions of errors. See if the error messages come from a particular script or from Snakemake. See if the error messages clearly point out the underlying sources of errors and if yes try to address the errors. Once the errors have been resolved, run `qsub run.sh` to resume the pipeline.
 
 ### 7.2 Network files system synchronization latency
 
@@ -171,7 +168,7 @@ Alternatively, you can also increase the time latency by adjusting `time_latency
 
 ### 7.3 Error message `Can't locate YAML/XS.pm in @INC`
 
-Clearly you don't have perl module YAML::XS installed on your system. Run `cpan install YAML::XL`.
+Clearly you don't have perl module YAML::XS installed on your system. Run `cpan YAML::XS`. If you have already installed `YAML::XS` through `cpan`, but you still encounter this error, please refer to 7.5.
 
 ### 7.4 `ModuleNotFoundError: No module named 'drmaa'`
 
@@ -193,9 +190,24 @@ According to our own experience, perl that comes with `miniconda` might trigger 
 export PERL5LIB=/path/to/conda/lib:$PERL5LIB
 ```
 
+It looks like `cpan` does not put compiled modules into separate folders according to the version of `perl` it's compiling with. Therefore, to prevent further complications, delete folders `~/.cpan/` and `~/perl5/`  if necessary. Also refer to 7.6 for a related potential error.
 
+### 7.6 `x86_64-conda_cos6-linux-gnu-gcc: No such file or directory` while installing perl module
 
-### 7.6 `/lib64/libc.so.6: version "GLIBC_2.14" not found`
+If you are going to use `perl` that comes with `miniconda`, and have set the path appropriately as described in 7.5, you might encounter the following error:
+
+```bash
+/bin/sh: /opt/software/miniconda3/bin/..//bin/x86_64-conda_cos6-linux-gnu-gcc: No such file or directory
+make[1]: *** [api.o] Error 127
+make[1]: Leaving directory `/home/dgwu/.cpan/build/YAML-LibYAML-0.80-0/LibYAML'
+make: *** [subdirs] Error 2
+  TINITA/YAML-LibYAML-0.80.tar.gz
+  /usr/bin/make -- NOT OK
+```
+
+Then run `conda install gxx_linux-64` to install the required packages and run `cpan` again.
+
+### 7.7 `/lib64/libc.so.6: version "GLIBC_2.14" not found`
 
 If you encounter error message similar to the one shown above, it's likely that you are running the pipeline on a very old Linux distro, so that some programs such as `samtools`, `bgzip` can't locate the version of the library (or of higher version). We have tested our pipeline on a cluster running CentOS 6.5 with `gcc` 4.4. Distro older than CentOS 6.5 might not be able to run this pipeline.
 
