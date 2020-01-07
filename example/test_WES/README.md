@@ -21,7 +21,7 @@ step 3: set up the pipeline, which is already described in section 4 of the main
 
 step 4: make sure the dependencies of the pipeline have been satisfied. ***In particular, make sure python3 can be found in $PATH.***
 
-step 5: review and modify parameters, **in particular, paths to various resource files**, in `user.cfg.yaml` if necessary. Do the same to `sample.index`. Set the environment variable `PL_DIR=/path/to/WEScall`.
+step 5: review and modify parameters, **in particular, paths to various resource files**, in `user.cfg.yaml` if necessary. Do the same to `sample.index`, and in particular, use absolute paths for all bam files. Set the environment variable `PL_DIR=/path/to/WEScall`.
 
 step 6: run `python ${PL_DIR}/WEScall.py varCall -c user.cfg.yaml -s samples.index`. If no error is encountered. Run `cd varCall && qsub run.sh >> ./logs/submission.log`. Check the status of jobs through `qstat` or equivalent commands. If you find the phrase `100% done` at the end of `varCall/logs/WEScall_varCall.master.log`. This step is done.
 
