@@ -18,6 +18,9 @@ LIB_PATH = os.path.abspath(
 if LIB_PATH not in sys.path:
 	sys.path.insert(0, LIB_PATH)
 
+PIPELINE_BASEDIR = os.path.dirname(os.path.realpath(sys.argv[0]))
+CFG_DIR = os.path.join(PIPELINE_BASEDIR, "cfg")
+
 import pipelines
 from pipelines import get_cluster_cfgfile
 from pipelines import PipelineHandler
@@ -29,6 +32,13 @@ handler = logging.StreamHandler()
 handler.setFormatter(logging.Formatter(
 	'[{asctime}] {levelname:8s} {filename} {message}', style='{'))
 logger.addHandler(handler)
+
+
+def print_parameters_given(args):
+	logger.info("Parameters in effect:")
+	for arg in vars(args):
+		if arg=="func": continue
+		logger.info("--{} = [{}]".format(arg, vars(args)[arg]))
 
 
 def get_seq_type_from_user_cfg(fn_user_cfg):
@@ -43,10 +53,7 @@ def get_seq_type_from_user_cfg(fn_user_cfg):
 
 def varCall(args):
 	logger.info("Preparing varCall pipeline...")
-	logger.debug("Varcall: arguments received: "+str(args))
-
-	PIPELINE_BASEDIR = os.path.dirname(sys.argv[0])
-	CFG_DIR = os.path.join(PIPELINE_BASEDIR, "cfg")
+	print_parameters_given(args)
 
 	pipeline_handler = PipelineHandler(
 		"WEScall_varCall",
@@ -75,7 +82,8 @@ def varCall(args):
 
 
 def LDRefine(args):
-	logger.debug("LDRefine: "+str(args))
+	logger.info("Preparing LD-based genotype refinement pipeline...")
+	print_parameters_given(args)
 
 	assert os.path.exists("varCall"), "Cannot detect the directory of varaiant detection.\nWEScall varCall has to be run before LD-based genotype refinement."
 
@@ -119,7 +127,8 @@ def LDRefine(args):
 	pipeline_handler.submit(no_run=True)
 
 def QC(args):
-	logger.debug("QC: "+str(args))
+	logger.info("Preparing final QC pipeline...")
+	print_parameters_given(args)
 
 	assert (args.DR2>=0. and args.DR2<=1.0), "DR2 has to be a floating point number between 0 and 1!"
 

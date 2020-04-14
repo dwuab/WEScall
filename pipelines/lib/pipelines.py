@@ -29,6 +29,7 @@ yaml.Dumper.ignore_aliases = lambda *args: True
 
 # global logger
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 handler = logging.StreamHandler()
 handler.setFormatter(logging.Formatter(
     '[{asctime}] {levelname:8s} {filename} {message}', style='{'))
@@ -285,7 +286,7 @@ class PipelineHandler(object):
         assert 'ELM' not in config
         config['ELM'] = self.elm_data
 
-        print(self.pipeline_cfgfile_out)
+        logger.debug("merged configure file at "+self.pipeline_cfgfile_out)
         if not force_overwrite:
             assert not os.path.exists(self.pipeline_cfgfile_out)
         with open(self.pipeline_cfgfile_out, 'w') as fh:
@@ -332,8 +333,7 @@ class PipelineHandler(object):
                 os.path.basename(self.run_out), self.submissionlog)
 
         if no_run:
-            logger.warning("Skipping pipeline run on request. Once ready, use: %s", cmd)
-            logger.warning("Once ready submit with: %s", cmd)
+            logger.info("Once ready submit with: %s", cmd)
         else:
             logger.info("Starting pipeline: %s", cmd)
             #os.chdir(os.path.dirname(run_out))
