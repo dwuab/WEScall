@@ -124,7 +124,8 @@ rule step4:
 		target_excl_list="excl_list/{chr}.target.step4.excl.list.gz",
 		off_target_excl_list="excl_list/{chr}.off_target.step4.excl.list.gz",
 	params:
-		DP_target=str(config["QC"]["DP_target"]),
+		DP_target_upper=str(config["QC"]["DP_target_upper"]),
+		DP_target_lower=str(config["QC"]["DP_target_lower"]),
 		DP_off_target=str(config["QC"]["DP_off_target"])
 	run:
 		shell("bcftools index -f {input.filter_vcf}")
@@ -133,7 +134,7 @@ rule step4:
 		shell("bcftools annotate -a {input.filter_vcf} -c AVGDP -h <(echo \"##INFO=<ID=AVGDP,Number=1,Type=Float,Description=\"Average Depth per Sample\">\") {input.target_vcf} -Oz > {output.target_vcf_tmp}")
 		shell("bcftools annotate -a {input.filter_vcf} -c AVGDP -h <(echo \"##INFO=<ID=AVGDP,Number=1,Type=Float,Description=\"Average Depth per Sample\">\") {input.off_target_vcf} -Oz > {output.off_target_vcf_tmp}")
 
-		shell("bcftools view -e 'INFO/AVGDP>{params.DP_target}' {output.target_vcf_tmp} -Oz > {output.target_vcf}")
+		shell("bcftools view -e 'INFO/AVGDP>{params.DP_target_upper} | INFO/AVGDP<{params.DP_target_lower}' {output.target_vcf_tmp} -Oz > {output.target_vcf}")
 		shell("bcftools view -e 'INFO/AVGDP>{params.DP_off_target}' {output.off_target_vcf_tmp} -Oz > {output.off_target_vcf}")
 
 		# find out exclusion list

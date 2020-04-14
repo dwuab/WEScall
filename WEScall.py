@@ -125,7 +125,7 @@ def QC(args):
 
 	assert (args.HWE>=0. and args.HWE<=1.), "HWE p-value has to be between 0 and 1."
 
-	assert args.DP_target>0., "DP_target has to be larger than 0."
+	assert (args.DP_target_upper>0. and args.DP_target_lower>=0. and args.DP_target_upper>args.DP_target_lower), "DP_target_lower and DP_target_upper have to be larger than 0, and DP_target_upper has to be larger than DP_target_lower."
 
 	assert args.DP_off_target>0., "DP_off_target has to be larger than 0."
 
@@ -147,9 +147,10 @@ def QC(args):
 	user_cfg_dict["QC"]={"DR2":args.DR2,
 	"MAC":args.MAC,
 	"HWE":args.HWE,
-	"DP_target":args.DP_target,
+	"DP_target_upper":args.DP_target_upper,
+	"DP_target_lower":args.DP_target_lower,
 	"DP_off_target":args.DP_off_target,
-	"g1k_indel_interval_bed":args.g1k_intdel_interval_bed,
+	"g1k_indel_interval_bed":args.g1k_indel_interval_bed,
 	"indel_excl":args.indel_excl,
 	"max_GP":args.max_GP,
 	"missing_rate":args.missing_rate
@@ -210,11 +211,15 @@ def main():
 		help="MAC threshold. Range: integer>=0. Variants with MAC less than or equal to this value will be filtered.")
 	parser_QC.add_argument('--HWE',type=float,default=1e-5,metavar="HWE p-value",
 		help="HWE p value threshold. Range: [0,1]. Variants with HWE p-value less than this value will be filtered.")
-	parser_QC.add_argument('--DP_target',type=float,default=300,metavar="depth",
+	
+	parser_QC.add_argument('--DP_target_upper',type=float,default=300,metavar="depth",
 		help="Depth threshold for target region. Range: integer>=0. Variants in the target region with DP larger than this value will be filtered.")
+	parser_QC.add_argument('--DP_target_lower',type=float,default=0,metavar="depth",
+		help="Depth threshold for target region. Range: integer>=0. Variants in the target region with DP smaller than this value will be filtered.")
 	parser_QC.add_argument('--DP_off_target',type=float,default=50,metavar="depth",
 		help="Depth threshold for target region. Range: integer>=0. Variants in the off-target region with DP larger than this value will be filtered.")
-	parser_QC.add_argument('--g1k_intdel_interval_bed',type=str,metavar="path",
+	
+	parser_QC.add_argument('--g1k_indel_interval_bed',type=str,metavar="path",
 		default=os.path.join(os.path.dirname(os.path.realpath(__file__)), "resources","g1k.indel.interval.bed.gz"),
 		help="Path to 1000G interval list. No need to set this.")
 	parser_QC.add_argument('--indel_excl',type=int,default=5,metavar="number-of-bases",
