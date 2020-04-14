@@ -29,6 +29,11 @@ yaml.Dumper.ignore_aliases = lambda *args: True
 
 # global logger
 logger = logging.getLogger(__name__)
+handler = logging.StreamHandler()
+handler.setFormatter(logging.Formatter(
+    '[{asctime}] {levelname:8s} {filename} {message}', style='{'))
+logger.addHandler(handler)
+
 
 # dir relative to Snakefile where configs are to be found
 CFG_DIR = "cfg"
@@ -301,8 +306,8 @@ class PipelineHandler(object):
         if not self.local_mode:
             self.write_cluster_config()
         self.write_merged_cfg()
-        self.write_snakemake_env()
-        self.write_snakemake_init(self.snakemake_init_file)
+#        self.write_snakemake_env()
+#        self.write_snakemake_init(self.snakemake_init_file)
         self.write_run_template()
 
 

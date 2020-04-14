@@ -18,12 +18,13 @@ LIB_PATH = os.path.abspath(
 if LIB_PATH not in sys.path:
 	sys.path.insert(0, LIB_PATH)
 
+import pipelines
 from pipelines import get_cluster_cfgfile
 from pipelines import PipelineHandler
 
 # global logger
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 handler = logging.StreamHandler()
 handler.setFormatter(logging.Formatter(
 	'[{asctime}] {levelname:8s} {filename} {message}', style='{'))
@@ -41,7 +42,8 @@ def get_seq_type_from_user_cfg(fn_user_cfg):
 	return seq_type
 
 def varCall(args):
-	logger.debug("Varcall: "+str(args))
+	logger.info("Preparing varCall pipeline...")
+	logger.debug("Varcall: arguments received: "+str(args))
 
 	PIPELINE_BASEDIR = os.path.dirname(sys.argv[0])
 	CFG_DIR = os.path.join(PIPELINE_BASEDIR, "cfg")
@@ -183,10 +185,13 @@ def main():
 	common_parser.add_argument('-c', '--userCfg', required=True,
 						metavar="userCfgFile",
 						help="User specific configure file")
+	common_parser.add_argument("-v", "--verbose", help="increase output verbosity",
+                    action="store_true")
 
 	# one subparser corresponds to one subcommand
 	parser_varCall = subparsers.add_parser('varCall', parents=[common_parser],
-		help='Variant discovery, genotype calling and site filtering by SVM')
+		help='Variant discovery, genotype calling and site filtering by SVM',
+		formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 	parser_varCall.add_argument('-s', '--sample-list', required=True,
 								help="The list of study samples, paths to the corresponding BAM/CRAM files and contamination rates")
 	parser_varCall.set_defaults(func=varCall)
@@ -240,6 +245,10 @@ def main():
 
 	# check if user configure exists
 	assert os.path.exists(args.userCfg), ("User config file {} cannot be found".format(args.userCfg))
+
+	if args.verbose:
+		for name in logging.root.manager.loggerDict:
+			logging.getLogger(name).setLevel(logging.DEBUG)
 
 	# execute subcommand-specific function
 	args.func(args)
