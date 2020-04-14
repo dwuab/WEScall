@@ -76,13 +76,40 @@ def validate_sample_list_file(args):
 		exit(1)
 
 
+def validate_user_cfg(args):
+	with open(args.userCfg) as fh:
+		user_cfg = dict(yaml.safe_load(fh))
+
+	assert os.path.isfile(user_cfg["targetBed"]), "Target region bed file {} cannot be found!".format(user_cfg["targetBed"])
+
+	assert os.path.isdir(user_cfg["1KG3_panel"]), "1KG3 reference panel cannot be found at {}!".format(user_cfg["1KG3_panel"])
+	all_chr=list(range(1,23))
+	all_chr.extend("X")
+	for chr_no in all_chr:
+		site_fn=os.path.join(user_cfg["1KG3_panel"],"ALL.chr{}.phase3.20130502.SNP.biallelic.MAF0.01.sites.vcf.gz".format(chr_no))
+		site_index_fn=os.path.join(user_cfg["1KG3_panel"],"ALL.chr{}.phase3.20130502.SNP.biallelic.MAF0.01.sites.vcf.gz.csi".format(chr_no))
+		GT_fn=os.path.join(user_cfg["1KG3_panel"],"ALL.chr{}.phase3.20130502.SNP.indel.biallelic.mac5.vcf.gz".format(chr_no))
+		
+		assert os.path.isfile(site_fn), "1KG3 ref panel site file {} cannot be found!".format(site_fn)
+		assert os.path.isfile(site_index_fn), "Index file of 1KG3 ref panel site file {} cannot be found!".format(site_fn)
+		assert os.path.isfile(GT_fn), "Filtered genotype file of 1KG3 ref panel {} cannot be found!".format(GT_fn)
+
+	assert os.path.isdir(user_cfg["geneticMap"]), "Genetic map folder cannot be found at {}.".format(user_cfg["geneticMap"])
+
+	for chr_no in all_chr:
+		map_fn=os.path.join(user_cfg["geneticMap"], "plink.chr{}.GRCh37.map".format(chr_no))
+		assert os.path.isfile(map_fn), "Genetic map file {} cannot be found!".format(map_fn)
 
 
 def varCall(args):
 	logger.info("Preparing varCall pipeline...")
 	print_parameters_given(args)
 
+	logger.info("Validating sample index ...")
 	validate_sample_list_file(args)
+
+	logger.info("Validating user config file ...")
+	validate_user_cfg(args)
 
 	pipeline_handler = PipelineHandler(
 		"WEScall_varCall",
