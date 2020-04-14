@@ -51,9 +51,38 @@ def get_seq_type_from_user_cfg(fn_user_cfg):
 
 	return seq_type
 
+
+def validate_sample_list_file(args):
+	assert os.path.isfile(args.sample_list), "Sample index file {} cannot be found!".format(args.sample_list)
+
+	try:
+		with open(args.sample_list) as f_in:
+			for line in f_in:
+				record = line.strip().split("\t")
+				logger.debug("Checking sample {}".format(record[0]))
+				assert os.path.isfile(record[1]), "Bam file {} cannot be found!".format(record[1])
+				assert os.path.isfile(record[1]+".bai"), "Bam file {} has not been indexed!".format(record[1])
+				assert os.path.isabs(record[1]), "Please use absolute path for bam file {}!".format(record[1])
+
+				try:
+					float(record[2])
+					assert 0.0 <= float(record[2]) and float(record[2]) <= 1.0, "Contamination rate of sample {0} has to be a float number between 0 and 1 instead of {1}!".format(record[0], record[2])
+				except:
+					logger.error("Contamination rate of sample {0} has to be a float number between 0 and 1 instead of {1}!".format(record[0], record[2]))
+					exit(1)
+
+	except Exception:
+		logger.error("There is something wrong with the sample index file. Check the logs for more information.")
+		exit(1)
+
+
+
+
 def varCall(args):
 	logger.info("Preparing varCall pipeline...")
 	print_parameters_given(args)
+
+	validate_sample_list_file(args)
 
 	pipeline_handler = PipelineHandler(
 		"WEScall_varCall",
@@ -253,7 +282,7 @@ def main():
 		exit(1)
 
 	# check if user configure exists
-	assert os.path.exists(args.userCfg), ("User config file {} cannot be found".format(args.userCfg))
+	assert os.path.isfile(args.userCfg), ("User config file {} cannot be found".format(args.userCfg))
 
 	if args.verbose:
 		for name in logging.root.manager.loggerDict:
