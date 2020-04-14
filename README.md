@@ -39,16 +39,11 @@ You can download our pipeline by the following command:
 
 ### 4.1 Generating 1KG reference panel
 
-**Please run** `${PL_DIR}/scripts/create_g1k_ref.sh` to generate 1000G reference panel files. You should have downloaded 1000G phase 3 data before running this command.
-
-Link to 1000G phase 3 data: [ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/](ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/)
+**Please run** `${PL_DIR}/scripts/create_g1k_ref.sh` to generate 1000G reference panel files. You should have downloaded [1000G phase 3 data]([ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/](ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/)) before running this command.
 
 ### 4.2 Downloading resource files
 
-**Please run** `${PL_DIR}/scripts/download_resources.sh` to download resource files needed and uncompress at the correct directories. **This could take a while.** Alternatively, if you already have the resource files downloaded, you can run `${PL_DIR}/scripts/check_resources.sh` to check what resources files you lack and ways to download it. If the script determines a particular resource file is absent, please copy the mentioned resource file to the expected place or make a soft link to it.
-
-Link to GotCloud resource bundle: ftp://anonymous@share.sph.umich.edu/gotcloud/ref/hs37d5-db142-v1.tgz
-Link to genetic map: http://bochet.gcc.biostat.washington.edu/beagle/genetic_maps/plink.GRCh37.map.zip
+**Please run** `${PL_DIR}/scripts/download_resources.sh` to download resource files ([GotCloud resource bundle](ftp://anonymous@share.sph.umich.edu/gotcloud/ref/hs37d5-db142-v1.tgz) and [ Beagle genetic maps]( http://bochet.gcc.biostat.washington.edu/beagle/genetic_maps/plink.GRCh37.map.zip)) needed. **This could take a while.** Alternatively, if you already have the resource files downloaded, you can run `${PL_DIR}/scripts/check_resources.sh` to check what resources files you lack and ways to download it. If the script determines a particular resource file is absent, please copy the mentioned resource file to the expected place or make a soft link to it.
 
 ### 4.3 Configure the pipeline for your cluster
 
@@ -109,7 +104,8 @@ Once the log reports all jobs are done (message such as "4 of 4 steps (100%) don
 ### 5.2. LD-based genotype refinement through phasing
 
 This step performs genotype refinement through phasing by leveraging linkage disequilibrium (LD) information from study samples of external reference panel.
-After step 6.1 has done, run the following command to generate the job file: 
+After step 5.1 has done, run the following command to generate the job file: 
+
 ```
 cd ${WK_DIR} && python ${PL_DIR}/WEScall.py LDRefine -c user.cfg.yaml
 ```
@@ -122,7 +118,7 @@ When all above jobs are finished, the genotyping results are stored in `${WK_DIR
 
 ### 5.3. Variant QC
 
-If steps 6.1 and 6.2 have been done successfully, you can perform a series QC procedures described in our paper. Run the following command:
+If steps 5.1 and 5.2 have been done successfully, you can perform a series QC procedures described in our paper. Run the following command:
 ```
   cd ${WK_DIR} && python ${PL_DIR}/WEScall.py QC -c user.cfg.yaml
 ```
@@ -134,7 +130,7 @@ After the QC procedure is finished, the final .vcf files will be located at, e.g
 If you want to modify the queue names and pass other parameters to `qsub`. You can modify header of `${PL_DIR}/cfg/run.template.sh`, and `batchopts_step1`, `batchopts_step2`, `batchopts_step3` options of `${PL_DIR}/cfg/varCall.cfg.yaml`.
 
 ### 6.2. Memory settings of variant calling
-The joint calling step may take huge memory when the sample size is very large (>1,000). The cluster engine may terminate the jobs due to excessive memoery usage. You can address this issue by either modifying the amount of requested memory or splitting genome into smaller regions (default 1Mb).
+The joint calling step may take huge memory when the sample size is very large (>1,000). The cluster engine may terminate the jobs due to excessive memory usage. You can address this issue by either modifying the amount of requested memory or splitting genome into smaller regions (default 1Mb).
 
 To adjust the maximum memory usage, modify `batchopts_step1`, `batchopts_step2`, `batchopts_step3` options of `${PL_DIR}/cfg/varCall.cfg.yaml`.
 
@@ -152,10 +148,7 @@ For `LDRefine` step, simply run `./run.sh`.
 
 ### 7.1 Pipeline stops prematurely
 
-Symptoms: `qstat` shows the master job as finished, but in the master log you can't find statement `(100%) done`. 
-The first thing to do is to find out whether the pipeline has encountered any error in its execution. For example, you can run `grep error ${WK_DIR}/varCall/logs/*` in the log folder to see all mentions of errors. 
-See if the error messages come from a particular script or from Snakemake.
-See if the error messages clearly point out the underlying sources of errors and if yes try to address the errors.
+Symptoms: `qstat` shows the master job as finished, but in the master log you can't find statement `(100%) done`. The first thing to do is to find out whether the pipeline has encountered any error in its execution. For example, you can run `grep error ${WK_DIR}/varCall/logs/*` in the log folder to see all mentions of errors. See if the error messages come from a particular script or from Snakemake. See if the error messages clearly point out the underlying sources of errors and if yes try to address the errors. Once the errors have been resolved, run `qsub run.sh` to resume the pipeline.
 
 ### 7.2 Network files system synchronization latency
 
@@ -175,13 +168,13 @@ Alternatively, you can also increase the time latency by adjusting `time_latency
 
 ### 7.3 Error message `Can't locate YAML/XS.pm in @INC`
 
-Clearly you don't have perl module YAML::XS installed on your system. Run `cpan install YAML::XL`.
+Clearly you don't have perl module YAML::XS installed on your system. Run `cpan YAML::XS`. If you have already installed `YAML::XS` through `cpan`, but you still encounter this error, please refer to 7.5.
 
 ### 7.4 `ModuleNotFoundError: No module named 'drmaa'`
 
 You can install the required python module `drmaa` by `pip install drmaa`.
 
-### 7.5 Mysterious perl error messages
+### 7.5 `perl: symbol lookup error`
 
 If you get the following message:
 
@@ -189,9 +182,32 @@ If you get the following message:
 perl: symbol lookup error: /mnt/software/lib/perl5/5.10.1/auto/Cwd/Cwd.so: undefined symbol: Perl_Istack_sp_ptr
 ```
 
-it's likely that you have at least two perl installations in your system and one perl installation is trying to load extensions compiled for another perl installation. Set your environment variable `PERL5LIB` appropriately so that versions of the extensions match the perl executable. According to our own experience, perl that comes with conda might trigger such error. If this is the case, try to set `PATH` environment variable so that perl that comes with the Linux distro is used.
+it's likely that you have at least two perl installations in your system and one perl installation is trying to load extensions compiled for another perl installation. Set your environment variable `PERL5LIB` appropriately so that versions of the extensions match the perl executable. 
 
-### 7.6 `/lib64/libc.so.6: version "GLIBC_2.14" not found`
+According to our own experience, perl that comes with `miniconda` might trigger such error. If this is the case, set the environment variable `PERL5LIB`  in your `.bashrc` :
+
+```bash
+export PERL5LIB=/path/to/conda/lib:$PERL5LIB
+```
+
+It looks like `cpan` does not put compiled modules into separate folders according to the version of `perl` it's compiling with. Therefore, to prevent further complications, delete folders `~/.cpan/` and `~/perl5/`  if necessary. Also refer to 7.6 for a related potential error.
+
+### 7.6 `x86_64-conda_cos6-linux-gnu-gcc: No such file or directory` while installing perl module
+
+If you are going to use `perl` that comes with `miniconda`, and have set the path appropriately as described in 7.5, you might encounter the following error:
+
+```bash
+/bin/sh: /opt/software/miniconda3/bin/..//bin/x86_64-conda_cos6-linux-gnu-gcc: No such file or directory
+make[1]: *** [api.o] Error 127
+make[1]: Leaving directory `/home/dgwu/.cpan/build/YAML-LibYAML-0.80-0/LibYAML'
+make: *** [subdirs] Error 2
+  TINITA/YAML-LibYAML-0.80.tar.gz
+  /usr/bin/make -- NOT OK
+```
+
+Then run `conda install gxx_linux-64` to install the required packages and run `cpan` again.
+
+### 7.7 `/lib64/libc.so.6: version "GLIBC_2.14" not found`
 
 If you encounter error message similar to the one shown above, it's likely that you are running the pipeline on a very old Linux distro, so that some programs such as `samtools`, `bgzip` can't locate the version of the library (or of higher version). We have tested our pipeline on a cluster running CentOS 6.5 with `gcc` 4.4. Distro older than CentOS 6.5 might not be able to run this pipeline.
 
