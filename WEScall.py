@@ -101,6 +101,24 @@ def validate_user_cfg(args):
 		assert os.path.isfile(map_fn), "Genetic map file {} cannot be found!".format(map_fn)
 
 
+def check_resource_files_for_varCall():
+	logger.debug(PIPELINE_BASEDIR)
+	resource_folder=os.path.join(PIPELINE_BASEDIR, "pipelines/varCall/gotcloud.ref")
+
+	assert os.path.isdir(resource_folder), "Resource folder {} cannot be found!".format(resource_folder)
+
+	required_resource_files=("hs37d5.fa.fai", 
+		"hs37d5.fa", 
+		"1000G_omni2.5.b37.sites.PASS.vcf.gz",
+		"1000G_omni2.5.b37.sites.PASS.vcf.gz.tbi",
+		"hapmap_3.3.b37.sites.vcf.gz",
+		"hapmap_3.3.b37.sites.vcf.gz.tbi")
+
+	for fn in required_resource_files:
+		fn_path=os.path.join(PIPELINE_BASEDIR, "pipelines/varCall/gotcloud.ref", fn)
+		assert os.path.isfile(fn_path), "Required resource file {} cannot be found!".format(fn_path)
+
+
 def varCall(args):
 	logger.info("Preparing varCall pipeline...")
 	print_parameters_given(args)
@@ -110,6 +128,9 @@ def varCall(args):
 
 	logger.info("Validating user config file ...")
 	validate_user_cfg(args)
+
+	logger.info("Checking existence of essenstial resource files...")
+	check_resource_files_for_varCall()
 
 	pipeline_handler = PipelineHandler(
 		"WEScall_varCall",
