@@ -119,6 +119,31 @@ def check_resource_files_for_varCall():
 		assert os.path.isfile(fn_path), "Required resource file {} cannot be found!".format(fn_path)
 
 
+def check_dependencies():
+	programs_to_check = ("snakemake", "perl", "bcftools", "java")
+
+	for prog in programs_to_check:
+		out = os.popen("command -v {}".format(prog)).read()
+		assert out != "", "Program {} cannot be found!".format(prog)
+
+	perl_mods_to_check = ("YAML::XS",)
+
+	for mod in perl_mods_to_check:
+		out_pipe = os.popen('perl -e "use {}"'.format(mod))
+
+		# if the specified perl module has been installed, then there will be no output,
+		# otherwise out.close() will returns an error number
+
+		assert out_pipe.close() is None, "Perl module {} has not been installed!".format(mod)
+
+#	python_pkgs_to_check = ("drmaa",)
+
+#	for pkg in python_pkgs_to_check:
+#		out_pipe = os.popen('python -c "import {}"'.format(pkg))
+
+#		assert out_pipe.close() is None, "Python module {} has not been installed!".format(pkg)
+
+
 def varCall(args):
 	logger.info("Preparing varCall pipeline...")
 	print_parameters_given(args)
@@ -131,6 +156,9 @@ def varCall(args):
 
 	logger.info("Checking existence of essenstial resource files...")
 	check_resource_files_for_varCall()
+
+	logger.info("Checking dependencies...")
+	check_dependencies()
 
 	pipeline_handler = PipelineHandler(
 		"WEScall_varCall",
@@ -338,6 +366,8 @@ def main():
 
 	# execute subcommand-specific function
 	args.func(args)
+
+	logger.info("Success! See instructions above.")
 
 if __name__ == "__main__":
 	main()
