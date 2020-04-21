@@ -16,15 +16,16 @@ WEScall can:
 ## 2. Citation for our pipeline 
 
 Details of this pipeline can be found in our paper:  
-* Jinzhuang Dou, Degang Wu, Lin Ding, Kai Wang, Minghui Jiang, Xiaoran Chai, Dermot F. Reilly, E Shyong Tai, Jianjun Liu, Xueling Sim, Shanshan Cheng, Chaolong Wang. Using off-target data from whole-exome sequencing to improve genotyping accuracy, association analysis, and phenotype prediction (under review)
+* Jinzhuang Dou, Degang Wu, Lin Ding, Kai Wang, Minghui Jiang, Xiaoran Chai, Dermot F. Reilly, E Shyong Tai, Jianjun Liu, Xueling Sim, Shanshan Cheng, Chaolong Wang. Using off-target data from whole-exome sequencing to improve genotyping accuracy, association analysis, and phenotype prediction (accepted in *Briefings in Bioinformatics*)
 
 ## 3. Dependencies
-* python (version >= 3.5) with module drmaa (can be installed through `pip`)
+* python (version >= 3.5)
 * [Snakemake](https://snakemake.readthedocs.io/en/stable/) (version >= 5.4)
 * java (version >= 1.8.0)
 * perl (version >= v5.10) with module YAML::XS (can be installed through `cpan`)
 * bcftools (version >= 1.9)
 * parallel (optional)
+* bioawk (optional)
 
 ## 4. Installation and configuration
 
@@ -38,7 +39,6 @@ You can download our pipeline by the following command:
 * **WK_DIR**: the directory where you run the pipeline and  store the outputs.
 
 ### 4.1 Generating 1KG reference panel
-
 **Please run** `${PL_DIR}/scripts/create_g1k_ref.sh` to generate 1000G reference panel files. You should have downloaded [1000G phase 3 data]([ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/](ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/)) before running this command.
 
 ### 4.2 Downloading resource files
@@ -51,20 +51,32 @@ Review and modify, if necessary, the contents of `${PL_DIR}/cfg/run.template.sh`
 The default settings are tested on a Torque (An implementation of PBS) cluster. 
 We provide two example files, `${PL_DIR}/cfg/run.template.PBSPro.sh` and `${PL_DIR}/cfg/run.template.SGE.sh` to help you set up `${PL_DIR}/cfg/run.template.sh`.
 Comments in `${PL_DIR}/cfg/varCall.cfg.yaml` should be helpful too.
+Link to 1000G phase 3 data: [ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/](ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/)
+
+### 4.2 Downloading resource files
+
+**Please run** `${PL_DIR}/scripts/download_resources.sh` to download resource files needed and uncompress at the correct directories. **This could take a while.** Alternatively, if you already have the resource files downloaded, you can run `${PL_DIR}/scripts/check_resources.sh` to check what resources files you lack and ways to download it. If the script determines a particular resource file is absent, please copy the mentioned resource file to the expected place or make a soft link to it.
+
+Link to GotCloud resource bundle: ftp://anonymous@share.sph.umich.edu/gotcloud/ref/hs37d5-db142-v1.tgz
+Link to genetic map: http://bochet.gcc.biostat.washington.edu/beagle/genetic_maps/plink.GRCh37.map.zip
+
+### 4.3 Configure the pipeline for your cluster
+
+Review and modify, if necessary, the contents of `${PL_DIR}/cfg/run.template.sh` and `${PL_DIR}/cfg/varCall.cfg.yaml`, according to the cluster engine type, queue name, wall time limits on your cluster.
+The default settings are tested on a Torque (An implementation of PBS) cluster. 
+We provide two example files, `${PL_DIR}/cfg/run.template.PBSPro.sh` and `${PL_DIR}/cfg/run.template.SGE.sh` to help you set up `${PL_DIR}/cfg/run.template.sh`.
+Comments in `${PL_DIR}/cfg/varCall.cfg.yaml` should be helpful too.
 
 ## 5. Running the pipeline
 
 ### 5.1. Variant calling 
-Before running WEScall, you should first prepare a file, `samples.index`, containing a list of samples to call. The file have the same format required by [TopMed](https://github.com/statgen/topmed_freeze3_calling) pipeline.
-Each line of `samples.index` is of the following format:
+Before running WEScall, you should first prepare a file, `samples.index`, containing a list of samples to call. 
+Each line of `samples.index` contains 3 **tab-delimited** columns:
 
 ```
   [sampleID] [Absolute Path to BAM/CRAM file] [Contamination rate -- set to zero if unknown].
 ```
-**THERE CANNOT BE EMPTY LINES IN `samples.index` FILE!**
-**The path to BAM/CRAM file should be absolute.**
-The index file has to be **tab-delimited**. 
-BAM/CRAM files listed are assumed to be aligned to `hs37d5.fa`, indexed by `samtools` and **contain no hard clipped reads**, i.e., reads whose CIGAR string contains "H".
+**THERE CANNOT BE EMPTY LINES IN `samples.index` FILE!** (This requirement might be relaxed later.) **The path to BAM/CRAM file should be absolute.** BAM/CRAM files listed are assumed to be aligned to `hs37d5.fa`, indexed by `samtools` and **all hard clipped reads has been set with flag 0x100**. If you are unsure about it, you could use option `-H` to check if this requirement is met. The checking process could take a long time.
 
 You should also prepare a configure file specifying the chromosomes to call, the paths to the resources required by the pipeline and the type of sequencing data (WES or WGS). One example `user.cfg.yaml` in `${PL_DIR}/example/test_WES` is as following: 
 
@@ -85,14 +97,14 @@ The fourth line specifies the location of the genetic map files used for genotyp
 
 The fifth line specifies the type of the sequence data. The allowable values are WES and WGS.
 
-Now we can generate the master job file using the following command
+Now we can prepare the pipeline by using the following command:
 
-```
+```bash
 cd ${WK_DIR} && python ${PL_DIR}/WEScall.py varCall -c user.cfg.yaml -s samples.index
 ```
-After running this command, the folder `${WK_DIR}/varCall` will be generated, storing the execute script `${WK_DIR}/varCall/run.sh` and configure file `${WK_DIR}/varCall/cluster.yaml`. Users can modify these files before running the pipeline if necessary. 
+Before generating the files necessary for the running of the pipeline, checking of necessary resource files, dependencies and other stuff will be performed. After the checking, the folder `${WK_DIR}/varCall` will be generated, storing the execute script `${WK_DIR}/varCall/run.sh` and configure file `${WK_DIR}/varCall/cluster.yaml`. Users can modify these files before running the pipeline if necessary. 
 
-You can submit the variant calling master job using
+If you see message like ` WEScall.py Success! See instructions above.`, that means all checking has been passed (except the hard-clipped reads test if `-H` is not used), you can submit the variant calling master job using
 ```
 cd varCall && qsub run.sh >> ./logs/submission.log  
 ```
@@ -124,6 +136,10 @@ If steps 5.1 and 5.2 have been done successfully, you can perform a series QC pr
 ```
 After the QC procedure is finished, the final .vcf files will be located at, e.g., `QC/after_QC/1.after_QC.vcf.gz`. For a list of parameters and their descriptions for the QC procedures, please run `python ${PL_DIR}/WEScall.py QC --help`.
 
+### 5.4. Guides on setting QC thresholds
+
+Users can set different filtering thresholds when using this QC module. In general, because most of these QC metrics have bimodal distributions with low-quality SNPs having, for example, very low dosage *r*2, small HWE p values, or unusually high sequencing depths, quality of the final call set will not be sensitive to different filtering thresholds around the above settings. However, depending on the properties of the samples and WES experimental design, users might consider relaxing the HWE threshold in the presence of strong population structure, or adjusting the sequencing depth filtering criteria according to average sequencing depth (e.g., filtering sites with depth >10 times of the mean depth).
+
 ## 6. Frequently used settings and operations
 
 ### 6.1. server specific settings
@@ -131,6 +147,8 @@ If you want to modify the queue names and pass other parameters to `qsub`. You c
 
 ### 6.2. Memory settings of variant calling
 The joint calling step may take huge memory when the sample size is very large (>1,000). The cluster engine may terminate the jobs due to excessive memory usage. You can address this issue by either modifying the amount of requested memory or splitting genome into smaller regions (default 1Mb).
+
+The joint calling step may take huge memory when the sample size is very large (>1,000). The cluster engine may terminate the jobs due to excessive memoery usage. You can address this issue by either modifying the amount of requested memory or splitting genome into smaller regions (default 1Mb).
 
 To adjust the maximum memory usage, modify `batchopts_step1`, `batchopts_step2`, `batchopts_step3` options of `${PL_DIR}/cfg/varCall.cfg.yaml`.
 
@@ -170,6 +188,7 @@ Alternatively, you can also increase the time latency by adjusting `time_latency
 
 Clearly you don't have perl module YAML::XS installed on your system. Run `cpan YAML::XS`. If you have already installed `YAML::XS` through `cpan`, but you still encounter this error, please refer to 7.5.
 
+Clearly you don't have perl module YAML::XS installed on your system. Run `cpan install YAML::XL`.
 ### 7.4 `ModuleNotFoundError: No module named 'drmaa'`
 
 You can install the required python module `drmaa` by `pip install drmaa`.
