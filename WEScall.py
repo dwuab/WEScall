@@ -53,6 +53,10 @@ def get_seq_type_from_user_cfg(fn_user_cfg):
 
 
 def validate_sample_list_file(args):
+	if args.check_hard_clipped:
+		out=os.popen("command -v bioawk").read()
+		assert out!="", "Program bioawk cannot be found!"
+
 	assert os.path.isfile(args.sample_list), "Sample index file {} cannot be found!".format(args.sample_list)
 
 	try:
@@ -60,9 +64,18 @@ def validate_sample_list_file(args):
 			for line in f_in:
 				record = line.strip().split("\t")
 				logger.debug("Checking sample {}".format(record[0]))
+				assert len(record)==3, "Every line has to have exactly 3 tab-delimited columns! Line with sample name {} does not satisify this requiremnt!".format(record[0])
 				assert os.path.isfile(record[1]), "Bam file {} cannot be found!".format(record[1])
 				assert os.path.isfile(record[1]+".bai"), "Bam file {} has not been indexed!".format(record[1])
 				assert os.path.isabs(record[1]), "Please use absolute path for bam file {}!".format(record[1])
+
+				if args.check_hard_clipped:
+					logger.debug("Checking existence of hard-clipped reads.")
+					cmd = "samtools view {} | bioawk -c sam 'BEGIN {{count=0}} ($cigar ~ /H/)&&(!and($flag,256)) {{count++}} END {{print count}}'".format(record[1])
+					logger.debug("Command: "+cmd)
+					out=os.popen(cmd).read().strip()
+					logger.debug("Results: "+out)
+					assert out=="0", "Bam file {} contains hard-clipped reads without proper flag (0x100) set! Please use -M or -Y options of BWA MEM!".format(record[1])
 
 				try:
 					float(record[2])
@@ -73,7 +86,8 @@ def validate_sample_list_file(args):
 
 	except Exception:
 		logger.error("There is something wrong with the sample index file. Check the logs for more information.")
-		exit(1)
+		print(sys.exc_info())
+		raise sys.exc_info()[0]
 
 
 def validate_user_cfg(args):
@@ -308,6 +322,9 @@ def main():
 		formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 	parser_varCall.add_argument('-s', '--sample-list', required=True,
 								help="The list of study samples, paths to the corresponding BAM/CRAM files and contamination rates")
+	parser_varCall.add_argument('-H', '--check-hard-clipped',
+		help="See existence of hard-clipped reads with improper flag (0x100 not set) in bam files. Requires program bioawk.",
+		action="store_true")
 	parser_varCall.set_defaults(func=varCall)
 
 	parser_LDRefine = subparsers.add_parser('LDRefine', parents=[common_parser],
