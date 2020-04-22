@@ -54,7 +54,7 @@ def get_seq_type_from_user_cfg(fn_user_cfg):
 
 def validate_sample_list_file(args):
 	if args.check_hard_clipped:
-		out=os.popen("command -v bioawk").read()
+		out=os.popen("command -v bioawk").read().strip()
 		assert out!="", "Program bioawk cannot be found!"
 
 	assert os.path.isfile(args.sample_list), "Sample index file {} cannot be found!".format(args.sample_list)
