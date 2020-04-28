@@ -17,14 +17,12 @@ samtools index 151002_7001448_0359_AC7F6GANXX_Sample_HG004-EEogPU_v02-KIT-Av5_CC
 
 step 3: set up the pipeline, which is already described in section 4 of the main README.md
 
-step 4: make sure the dependencies of the pipeline have been satisfied. ***In particular, make sure python3 can be found in $PATH.***
+step 4: review and modify parameters, **in particular, paths to various resource files**, in `user.cfg.yaml` if necessary. Do the same to `sample.index`, and in particular, use absolute paths for all bam files. Set the environment variable `PL_DIR=/path/to/WEScall`.
 
-step 5: review and modify parameters, **in particular, paths to various resource files**, in `user.cfg.yaml` if necessary. Do the same to `sample.index`, and in particular, use absolute paths for all bam files. Set the environment variable `PL_DIR=/path/to/WEScall`.
+step 5: run `python ${PL_DIR}/WEScall.py varCall -c user.cfg.yaml -s samples.index`. If no error is encountered. Run `cd varCall && qsub run.sh >> ./logs/submission.log`. Check the status of jobs through `qstat` or equivalent commands. If you find the phrase `100% done` at the end of `varCall/logs/WEScall_varCall.master.log`. This step is done.
 
-step 6: run `python ${PL_DIR}/WEScall.py varCall -c user.cfg.yaml -s samples.index`. If no error is encountered. Run `cd varCall && qsub run.sh >> ./logs/submission.log`. Check the status of jobs through `qstat` or equivalent commands. If you find the phrase `100% done` at the end of `varCall/logs/WEScall_varCall.master.log`. This step is done.
+step 6: run `python ${PL_DIR}/WEScall.py LDRefine -c user.cfg.yaml`. The rest is similar to the previous step. Check `LDRefine/logs/WEScall_LDRefine.master.log` for the status of the job.
 
-step 7: run `python ${PL_DIR}/WEScall.py LDRefine -c user.cfg.yaml`. The rest is similar to the previous step. Check `LDRefine/logs/WEScall_LDRefine.master.log` for the status of the job.
+step 7: run `python ${PL_DIR}/WEScall.py QC -c user.cfg.yaml` until everything is done. Review the final result at `QC/after_QC/20.after_QC.vcf.gz`.
 
-step 8: run `python ${PL_DIR}/WEScall.py QC -c user.cfg.yaml` until everything is done. Review the final result at `QC/after_QC/20.after_QC.vcf.gz`.
-
-step 9: You can use `bcftools stats 20.after_QC.ref.vcf.gz QC/after_QC/20.after_QC.vcf.gz -s HG002,HG003,HG004` to inspect the non-reference discordance rate.
+step 8: You can use `bcftools stats 20.after_QC.ref.vcf.gz QC/after_QC/20.after_QC.vcf.gz -s HG002,HG003,HG004` to inspect the non-reference discordance rate.

@@ -7,11 +7,11 @@
 
 ## 1. Description
 
-The WES genotype calling (WEScall) pipeline can perform variant calling of whole exome sequencing (WES) data as well as whole genome sequencing (WGS) data. It can call genotypes accurately in both target and off-target regions by making full utilization of off-target reads. 
+**WEScall** is a genotype calling pipeline for whole exome sequencing (WES) data. **WESCall** can analyze both target and off-target data, and is a useful tool to facilitate WES sutides with decent amount of off-target data. WEScall can also analyze WGS data.
 WEScall can: 
-* runs on HPC cluster, can be configured to support PBS, SGE and other environments.
-* handles cluster specifics internally and users don't need to worry about the scheduler usage.
-* runs automatically in parallel to make optimal use of resources where possible. 
+
+* run on HPC cluster, can be configured to run on PBS, SGE and other environments.
+* run in parallel whenever possible to make optimal use of resources. 
 
 ## 2. Citation for our pipeline 
 
@@ -19,27 +19,27 @@ Details of this pipeline can be found in our paper:
 * Jinzhuang Dou, Degang Wu, Lin Ding, Kai Wang, Minghui Jiang, Xiaoran Chai, Dermot F. Reilly, E Shyong Tai, Jianjun Liu, Xueling Sim, Shanshan Cheng, Chaolong Wang. Using off-target data from whole-exome sequencing to improve genotyping accuracy, association analysis, and phenotype prediction (accepted in *Briefings in Bioinformatics*)
 
 ## 3. Dependencies
-* python (version >= 3.5)
+* Python (version >= 3.5)
 * [Snakemake](https://snakemake.readthedocs.io/en/stable/) (version >= 5.4)
-* java (version >= 1.8.0)
-* perl (version >= v5.10) with module YAML::XS (can be installed through `cpan`)
-* bcftools (version >= 1.9)
-* parallel (optional)
-* bioawk (optional)
+* Java (version >= 1.8.0)
+* Perl (version >= v5.10) with module YAML::XS (can be installed through `cpan`)
+* Bcftools (version >= 1.9)
+* Parallel (optional)
+* Bioawk (optional)
 
 ## 4. Installation and configuration
 
-You can download our pipeline by the following command:
+To start, you can download our pipeline by the following command:
 
 `git clone https://github.com/dwuab/WEScall.git` 
 
 **Environment variables**
 
 * **PL_DIR**: the directory where the pipeline is located. i.e., the directory of the git-cloned repository. For example, if the cloned repo is at `/opt/software/WEScall`, then `PL_DIR=/opt/software/WEScall`.
-* **WK_DIR**: the directory where you run the pipeline and  store the outputs.
+* **WK_DIR**: the directory where you run the pipeline and store the outputs.
 
 ### 4.1 Generating 1KG reference panel
-**Please run** `${PL_DIR}/scripts/create_g1k_ref.sh` to generate 1000G reference panel files. You should have downloaded [1000G phase 3 data]([ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/](ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/)) before running this command.
+**Please run** `${PL_DIR}/scripts/create_g1k_ref.sh` to generate 1000G reference panel files. (This process will take a while.) You should have downloaded [1000G phase 3 data]([ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/](ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/)) before running this command.
 
 ### 4.2 Downloading resource files
 
