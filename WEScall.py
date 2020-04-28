@@ -94,7 +94,13 @@ def validate_user_cfg(args):
 	with open(args.userCfg) as fh:
 		user_cfg = dict(yaml.safe_load(fh))
 
-	assert os.path.isfile(user_cfg["targetBed"]), "Target region bed file {} cannot be found!".format(user_cfg["targetBed"])
+	if user_cfg["seqType"]=="WES":
+		assert os.path.isfile(user_cfg["targetBed"]), "Target region bed file {} cannot be found!".format(user_cfg["targetBed"])
+
+	if user_cfg["seqType"]=="WGS":
+		chrs = [item.strip() for item in str(user_cfg["chrs"]).split(",")]
+		assert ("1" in chrs) and ("X" in chrs), "Chromosomes 1 and X have to be included in WGS mode!"
+
 
 	assert os.path.isdir(user_cfg["1KG3_panel"]), "1KG3 reference panel cannot be found at {}!".format(user_cfg["1KG3_panel"])
 	all_chr=list(range(1,23))
@@ -126,7 +132,9 @@ def check_resource_files_for_varCall():
 		"1000G_omni2.5.b37.sites.PASS.vcf.gz",
 		"1000G_omni2.5.b37.sites.PASS.vcf.gz.tbi",
 		"hapmap_3.3.b37.sites.vcf.gz",
-		"hapmap_3.3.b37.sites.vcf.gz.tbi")
+		"hapmap_3.3.b37.sites.vcf.gz.tbi",
+		"dbsnp_142.b37.vcf.gz",
+		"dbsnp_142.b37.vcf.gz.tbi")
 
 	for fn in required_resource_files:
 		fn_path=os.path.join(PIPELINE_BASEDIR, "pipelines/varCall/gotcloud.ref", fn)

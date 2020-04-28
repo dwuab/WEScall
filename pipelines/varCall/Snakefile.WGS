@@ -29,7 +29,7 @@ shell.executable("/bin/bash")
 
 # When there is only one number in config['users']['chrs'], the type of config['users']['chrs']
 # will be integer. Therefore, I have to unconditonally convert config['users']['chrs'] to string
-CHRS = str(config['users']['chrs']).split(',')
+CHRS = [item.strip() for item in str(config['users']['chrs']).split(',')]
 #TOPMED = config['users']['topMed']
 REFPANEL = config['users']['1KG3_panel']
 

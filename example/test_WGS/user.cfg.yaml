@@ -1,5 +1,4 @@
-chrs: 1-22
-targetBed:  /mnt/projects/wangcl/ancestry/software/pipelines_web_dev/resources/SeqCap_EZ_Exome_v3_primary.bed
-topMed: /mnt/projects/wangcl/ancestry/software/pipelines_web_dev/topMed
-1KG3_panel: /mnt/projects/wangcl/ancestry/software/pipelines_web_dev/resources/data_v5a_filtered
-geneticMap: /mnt/projects/wangcl/ancestry/software/pipelines_web_dev/resources/geneticMap_GRCh37
+chrs:       1, 5, X
+1KG3_panel: /opt/software/WEScall/resources/1000G_ref_panel/
+geneticMap: /opt/software/WEScall/resources/geneticMap_GRCh37/
+seqType:    WGS
