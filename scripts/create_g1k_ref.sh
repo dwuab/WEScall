@@ -9,21 +9,24 @@ echo $DIR
 
 # first check existence of g1k reference panel
 
-if [ -d $DIR/resources/1000G_ref_panel ]; then
+if [ -e $DIR/resources/1000G_ref_panel/all_done.OK ]; then
 	echo "It looks like you already have the reference in place."
 	printf "In case you want to create the reference panel again, please delete %s first and try again.\n" $DIR/resources/1000G_ref_panel
 	exit
 fi
 
+mkdir -p $DIR/resources/1000G_ref_panel
+
 url_g1k=ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/
 printf "WEScall needs 1000G phase 3 data as reference panel. If you don't have 1000G phase 3 data, you can download it from %s\n" $url_g1k
-read -p "Please enter the path to 1000G phase 3 data: " g1k_path
+read -p "Please enter the path to 1000G phase 3 data (the directory where ALL.chr1.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz is located): " g1k_path
 while [ ! -d ${g1k_path} ]; do
 	printf "directory %s does not exists!\n" ${g1k_path}
 	read -p "Please enter the path to 1000G phase 3 data: " g1k_path
 done
 
 function filter_autosome {
+	set -euo pipefail
 	chr=$1
 	bcftools annotate ${g1k_path}/ALL.chr${chr}.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz \
 		-h <(printf "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">") -Ou | \
@@ -33,6 +36,7 @@ function filter_autosome {
 }
 
 function filter_X_chr {
+	set -euo pipefail
 	bcftools annotate ${g1k_path}/ALL.chrX.phase3_shapeit2_mvncall_integrated_v1a.20130502.genotypes.vcf.gz \
 		-h <(printf "%s\n%s" "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">" "##INFO=<ID=OLD_VARIANT,Number=1,Type=String,Description=\"unknown\">") -Ou | \
 		bcftools norm --rm-dup none -Ou | \
@@ -47,8 +51,6 @@ function filter_X_chr {
 
 export -f filter_autosome
 export -f filter_X_chr
-
-mkdir $DIR/resources/1000G_ref_panel
 
 if hash parallel 2>/dev/null; then
 	printf "Great! parallel detected!\nrunning!\n"
@@ -66,3 +68,4 @@ else
 fi
 
 printf "All done!"
+touch $DIR/resources/1000G_ref_panel/all_done.OK
