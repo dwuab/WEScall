@@ -16,7 +16,7 @@ WEScall can:
 ## 2. Citation for our pipeline 
 
 Details of this pipeline can be found in our paper:  
-* Jinzhuang Dou, Degang Wu, Lin Ding, Kai Wang, Minghui Jiang, Xiaoran Chai, Dermot F. Reilly, E Shyong Tai, Jianjun Liu, Xueling Sim, Shanshan Cheng, Chaolong Wang. Using off-target data from whole-exome sequencing to improve genotyping accuracy, association analysis, and phenotype prediction (accepted in *Briefings in Bioinformatics*)
+* Jinzhuang Dou, Degang Wu, Lin Ding, Kai Wang, Minghui Jiang, Xiaoran Chai, Dermot F. Reilly, E Shyong Tai, Jianjun Liu, Xueling Sim, Shanshan Cheng, Chaolong Wang. Using off-target data from whole-exome sequencing to improve genotyping accuracy, association analysis, and phenotype prediction (accepted by *Briefings in Bioinformatics*, in press)
 
 ## 3. Dependencies
 * Python (version >= 3.5)
