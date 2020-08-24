@@ -74,20 +74,21 @@ rule step2:
 		shell("sed -e '1i\\ID\\tDR2\\tAF' <(bcftools query tmp/step2_target_chr{wildcards.chr}/0000.vcf.gz -f '%ID\t%INFO/DR2\t%INFO/AF\n') | bgzip -c > {output.target_excl_list}")
 		shell("sed -e '1i\\ID\\tDR2\\tAF' <(bcftools query tmp/step2_off_target_chr{wildcards.chr}/0000.vcf.gz -f '%ID\t%INFO/DR2\t%INFO/AF\n') | bgzip -c > {output.off_target_excl_list}")
 
-# step 3: filtering according to HWE thershold
-rule step3:
+# step 3: filtering according to HWE thershold on autosomes
+rule step3_auto:
 	input:
 		flag="flags/{chr}.step2.OK",
 		target_vcf="QC_WIP/{chr}.target.step2.vcf.gz",
 		off_target_vcf="QC_WIP/{chr}.off_target.step2.vcf.gz"
 	output:
-		flag=touch("flags/{chr}.step3.OK"),
-		target_vcf="QC_WIP/{chr}.target.step3.vcf.gz",
-		target_vcf_tmp=temp("tmp/{chr}.target.step3.tmp.vcf.gz"),
-		off_target_vcf="QC_WIP/{chr}.off_target.step3.vcf.gz",
-		off_target_vcf_tmp=temp("tmp/{chr}.off_target.step3.vcf.gz"),
-		target_excl_list="excl_list/{chr}.target.step3.excl.list.gz",
-		off_target_excl_list="excl_list/{chr}.off_target.step3.excl.list.gz"
+		flag=touch("flags/{chr,\d+}.step3.OK"),
+		target_vcf="QC_WIP/{chr,\d+}.target.step3.vcf.gz",
+		target_vcf_tmp=temp("tmp/{chr,\d+}.target.step3.tmp.vcf.gz"),
+		off_target_vcf="QC_WIP/{chr,\d+}.off_target.step3.vcf.gz",
+		off_target_vcf_tmp=temp("tmp/{chr,\d+}.off_target.step3.vcf.gz"),
+		target_excl_list="excl_list/{chr,\d+}.target.step3.excl.list.gz",
+		off_target_excl_list="excl_list/{chr,\d+}.off_target.step3.excl.list.gz"
+	# chromosome X needs special treatment
 	params:
 		HWE_thershold=str(config["QC"]["HWE"])
 	run:
@@ -106,6 +107,50 @@ rule step3:
 		shell("bcftools isec -C {output.off_target_vcf_tmp} {output.off_target_vcf} -Oz -p tmp/step3_off_target_chr{wildcards.chr}")
 		shell("sed -e '1i\\ID\\tHWE' <(bcftools query tmp/step3_target_chr{wildcards.chr}/0000.vcf.gz -f '%ID\t%INFO/HWE\n') | bgzip -c > {output.target_excl_list}")
 		shell("sed -e '1i\\ID\\tHWE' <(bcftools query tmp/step3_off_target_chr{wildcards.chr}/0000.vcf.gz -f '%ID\t%INFO/HWE\n') | bgzip -c > {output.off_target_excl_list}")
+
+
+# step 3: filtering according to HWE thershold on X chromosome
+rule step3_X:
+	input:
+		flag="flags/X.step2.OK",
+		target_vcf="QC_WIP/X.target.step2.vcf.gz",
+		off_target_vcf="QC_WIP/X.off_target.step2.vcf.gz"
+	output:
+		flag=touch("flags/X.step3.OK"),
+		target_vcf="QC_WIP/X.target.step3.vcf.gz",
+		off_target_vcf="QC_WIP/X.off_target.step3.vcf.gz",
+	params:
+		HWE_thershold=str(config["QC"]["HWE"]),
+		female_fn=config["QC"]["female_sample_list"],
+		target_vcf_tmp="tmp/X.target.step3.tmp.vcf.gz",
+		off_target_vcf_tmp="tmp/X.off_target.step3.vcf.gz",
+		target_excl_list="excl_list/X.target.step3.excl.list.gz",
+		off_target_excl_list="excl_list/X.off_target.step3.excl.list.gz"
+	run:
+		if (config["QC"]["skip_HWE_X"]):
+			shell("ln -sf $(basename {input.target_vcf}) {output.target_vcf}")
+			shell("ln -sf $(basename {input.off_target_vcf}) {output.off_target_vcf}")
+
+			shell("bcftools index -f {output.target_vcf}")
+			shell("bcftools index -f {output.off_target_vcf}")
+		# calculate HWE on female samples only
+		else:
+			shell("bcftools +fill-tags -Oz {input.target_vcf} -- -t HWE -S <(awk '{{print $1\" female\"}}' {params.female_fn}) > {params.target_vcf_tmp}")
+			shell("bcftools +fill-tags -Oz {input.off_target_vcf} -- -t HWE -S <(awk '{{print $1\" female\"}}' {params.female_fn}) > {params.off_target_vcf_tmp}")
+			
+			shell("bcftools view -e 'INFO/HWE_female<{params.HWE_thershold}' {params.target_vcf_tmp} -Oz > {output.target_vcf}")
+			shell("bcftools view -e 'INFO/HWE_female<{params.HWE_thershold}' {params.off_target_vcf_tmp} -Oz > {output.off_target_vcf}")
+
+			shell("bcftools index -f {params.target_vcf_tmp}")
+			shell("bcftools index -f {params.off_target_vcf_tmp}")
+			shell("bcftools index -f {output.target_vcf}")
+			shell("bcftools index -f {output.off_target_vcf}")
+
+			shell("bcftools isec -C {params.target_vcf_tmp} {output.target_vcf} -Oz -p tmp/step3_target_chrX")
+			shell("bcftools isec -C {params.off_target_vcf_tmp} {output.off_target_vcf} -Oz -p tmp/step3_off_target_chrX")
+			shell("sed -e '1i\\ID\\tHWE' <(bcftools query tmp/step3_target_chrX/0000.vcf.gz -f '%ID\t%INFO/HWE\n') | bgzip -c > {params.target_excl_list}")
+			shell("sed -e '1i\\ID\\tHWE' <(bcftools query tmp/step3_off_target_chrX/0000.vcf.gz -f '%ID\t%INFO/HWE\n') | bgzip -c > {params.off_target_excl_list}")
+
 
 # step 4: filtering according to depth
 rule step4:
