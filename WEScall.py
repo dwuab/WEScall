@@ -299,11 +299,15 @@ def QC(args):
 
 	PIPELINE_BASEDIR = os.path.dirname(os.path.realpath(__file__))
 
-	cmd="PL_DIR="+PIPELINE_BASEDIR+" && cd QC && snakemake -s ${PL_DIR}/pipelines/QC/Snakefile.QC.WES "+\
-		"--configfile QC_params.yaml --cores 20 --printshellcmds all"
+	cmd="set -euo pipefail && PL_DIR="+PIPELINE_BASEDIR+" && cd QC && snakemake -s ${PL_DIR}/pipelines/QC/Snakefile.QC.WES "+\
+		"--configfile QC_params.yaml --cores 20 --printshellcmds all 2>&1 | tee QC.log"
 	logger.debug(cmd)
-	os.system(cmd)
-
+	logger.info("Star running QC procedures.")
+	exit_code=os.system(cmd)
+	if (exit_code!=0):
+		logger.error("Errors encountered. Exit code: {}. See logs above for information.".format(exit_code))
+		exit(exit_code)
+	
 
 def main():
 	parser = argparse.ArgumentParser(
