@@ -273,6 +273,19 @@ def QC(args):
 
 	assert (args.missing_rate>=0. and args.missing_rate<=1.0), "missing_rate has to be between 0 and 1."
 
+	if ("female_sample_list" in args):
+		assert (os.path.isfile(args.female_sample_list)), "female sample list {} cannot be found!".format(args.female_sample_list)
+		if (args.skip_HWE_X):
+			logger.error("A female sample list is supplied while user choose to skip HWE filtering on X chromosome. "
+				"Either set --skip_HWE_X and not --female_sample_list, or not set --skip_HWE_X and set --female_sample_list."
+				"... Exiting")
+			exit()
+	elif (!args.skip_HWE_X):
+		logger.error("No female sample list is supplied while user choose not to skip HWE filtering on X chromosome. "
+			"Either set --skip_HWE_X and not --female_sample_list, or not set --skip_HWE_X and set --female_sample_list."
+			"... Exiting")
+		exit()
+
 	if get_seq_type_from_user_cfg(args.userCfg)=="WGS":
 		logger.warn("This QC procedure was designed for WES data.")
 
@@ -282,7 +295,8 @@ def QC(args):
 	with open(args.userCfg) as fh_cfg:
 		user_cfg_dict=yaml.safe_load(fh_cfg)
 
-	user_cfg_dict["QC"]={"DR2":args.DR2,
+	user_cfg_dict["QC"]={
+	"DR2":args.DR2,
 	"MAC":args.MAC,
 	"HWE":args.HWE,
 	"DP_target_upper":args.DP_target_upper,
@@ -291,8 +305,12 @@ def QC(args):
 	"g1k_indel_interval_bed":args.g1k_indel_interval_bed,
 	"indel_excl":args.indel_excl,
 	"max_GP":args.max_GP,
-	"missing_rate":args.missing_rate
+	"missing_rate":args.missing_rate,
+	"skip_HWE_X":args.skip_HWE_X
 	}
+
+	if ("female_sample_list" in args):
+		user_cfg_dict["QC"]["female_sample_list"] = args.female_sample_list
 
 	with open("./QC/QC_params.yaml","w") as fh_cfg:
 		fh_cfg.write(yaml.dump(user_cfg_dict))
@@ -302,7 +320,7 @@ def QC(args):
 	cmd="set -euo pipefail && PL_DIR="+PIPELINE_BASEDIR+" && cd QC && snakemake -s ${PL_DIR}/pipelines/QC/Snakefile.QC.WES "+\
 		"--configfile QC_params.yaml --cores 20 --printshellcmds all 2>&1 | tee QC.log"
 	logger.debug(cmd)
-	logger.info("Star running QC procedures.")
+	logger.info("Start running QC procedures.")
 	exit_code=os.system(cmd)
 	if (exit_code!=0):
 		logger.error("Errors encountered. Exit code: {}. See logs above for information.".format(exit_code))
@@ -359,6 +377,10 @@ def main():
 		help="MAC threshold. Range: integer>=0. Variants with MAC less than or equal to this value will be filtered.")
 	parser_QC.add_argument('--HWE',type=float,default=1e-5,metavar="HWE p-value",
 		help="HWE p value threshold. Range: [0,1]. Variants with HWE p-value less than this value will be filtered.")
+	parser_QC.add_argument('--skip_HWE_X',action="store_true",default=False,
+		help="Whether to skip HWE filtering on X chromosome.")
+	parser_QC.add_argument('--female_sample_list',type=str,metavar="file name",
+		help="List of female samples for HWE filtering of X chromosome.")
 	
 	parser_QC.add_argument('--DP_target_upper',type=float,default=300,metavar="depth",
 		help="Depth threshold for target region. Range: integer>=0. Variants in the target region with DP larger than this value will be filtered.")
