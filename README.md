@@ -16,7 +16,7 @@ WEScall can:
 ## 2. Citation for our pipeline 
 
 Details of this pipeline can be found in our paper:  
-* Jinzhuang Dou, Degang Wu, Lin Ding, Kai Wang, Minghui Jiang, Xiaoran Chai, Dermot F. Reilly, E Shyong Tai, Jianjun Liu, Xueling Sim, Shanshan Cheng, Chaolong Wang. Using off-target data from whole-exome sequencing to improve genotyping accuracy, association analysis, and phenotype prediction (accepted by *Briefings in Bioinformatics*, in press)
+* Jinzhuang Dou, Degang Wu, Lin Ding, Kai Wang, Minghui Jiang, Xiaoran Chai, Dermot F. Reilly, E Shyong Tai, Jianjun Liu, Xueling Sim, Shanshan Cheng, Chaolong Wang. Using off-target data from whole-exome sequencing to improve genotyping accuracy, association analysis, and phenotype prediction, *Briefings in Bioinformatics*, doi: 10.1093/bib/bbaa084
 
 ## 3. Dependencies
 * Python (version >= 3.5)
@@ -132,7 +132,7 @@ When all above jobs are finished, the genotyping results are stored in `${WK_DIR
 
 If steps 5.1 and 5.2 have been done successfully, you can perform a series QC procedures described in our paper. Run the following command:
 ```
-  cd ${WK_DIR} && python ${PL_DIR}/WEScall.py QC -c user.cfg.yaml
+  cd ${WK_DIR} && python ${PL_DIR}/WEScall.py QC -c user.cfg.yaml --skip_HWE_X
 ```
 After the QC procedure is finished, the final .vcf files will be located at, e.g., `QC/after_QC/1.after_QC.vcf.gz`. For a list of parameters and their descriptions for the QC procedures, please run `python ${PL_DIR}/WEScall.py QC --help`.
 
